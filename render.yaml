@@ -1,0 +1,29 @@
+services:
+  # Backend API Service
+  - type: web
+    name: shipments-manager-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health
+
+  # Frontend React App
+  - type: web
+    name: shipments-manager-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://shipments-manager-api.onrender.com
