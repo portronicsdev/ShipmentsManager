@@ -7,47 +7,62 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
+// --- Middleware
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize MongoDB connection
+// --- DB
 const connectDB = require('./db');
 
-// Routes
-app.get("/health", (req, res) => res.send("ok"));
+// --- Health endpoints
+let isReady = false; // flips true after DB connects
+
+// Fast path for platform healthcheck (no DB wait)
+app.get('/health', (_req, res) => res.status(200).send('ok'));
+
+// More detailed health including DB readiness
+app.get('/api/health', (_req, res) => {
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? 'OK' : 'STARTING',
+    message: isReady ? 'Server and DB ready' : 'Server up, DB not ready yet'
+  });
+});
+
+// --- Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/shipments', require('./routes/shipments'));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
+// --- Error handlers
+app.use((err, _req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
+app.use('*', (_req, res) => res.status(404).json({ message: 'Route not found' }));
 
-const PORT = config.PORT;
+// --- Start server THEN connect DB
+const PORT = process.env.PORT || config.PORT || 5000;
 
-// Start server
 const startServer = async () => {
-  await connectDB();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
+
+  try {
+    await connectDB({ serverSelectionTimeoutMS: 5000 }); // optional: fail fast
+    isReady = true;
+    console.log('DB connected');
+  } catch (e) {
+    console.error('DB connection failed', e);
+    // keep serving /health so Railway doesn’t kill the deploy; /api routes may fail until env is fixed
+  }
 };
 
 startServer();
+
+module.exports = app; // (handy for tests)
