@@ -704,7 +704,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedShipment, setSelectedShipment] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);

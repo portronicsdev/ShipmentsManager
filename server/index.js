@@ -18,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 const connectDB = require('./db');
 
 // Routes
+app.get("/health", (req, res) => res.send("ok"));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
