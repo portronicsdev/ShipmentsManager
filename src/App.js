@@ -72,7 +72,7 @@ function AppContent() {
     loadData();
   }, [user]);
 
-  // Function to refresh data
+  /*// Function to refresh data
   const refreshData = async () => {
     if (user) {
       try {
@@ -91,7 +91,7 @@ function AppContent() {
         console.error('Error refreshing data:', error);
       }
     }
-  };
+  };*/
 
   // Helper function to show operation success messages
   const showSuccess = (message) => {

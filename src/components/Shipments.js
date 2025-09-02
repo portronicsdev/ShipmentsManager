@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { useReactToPrint } from 'react-to-print';
+
 
 /** =============================
  *  EditShipmentForm
@@ -81,13 +81,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     setCurrentProduct({ sku: '', productName: '', quantity: 1 });
   };
 
-  const editProductInBox = (boxId, productId) => {
-    const box = boxes.find(b => b.id === boxId);
-    if (!box) return;
-    const product = box.products.find(p => p.id === productId);
-    if (!product) return;
-    setCurrentProduct({ ...product });
-  };
+
 
   const removeProductFromExistingBox = (boxId, productId) => {
     setBoxes(prev =>
@@ -704,8 +698,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedShipment, setSelectedShipment] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const [editingShipment, setEditingShipment] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -736,15 +729,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
     navigate(`/shipments/${shipment.id}`);
   };
 
-  const printShipmentLabel = useReactToPrint({
-    content: () => document.getElementById('shipment-label'),
-    documentTitle: `Shipment-${selectedShipment?.invoiceNo}`,
-  });
 
-  const printBoxLabels = useReactToPrint({
-    content: () => document.getElementById('box-labels'),
-    documentTitle: `Box-Labels-${selectedShipment?.invoiceNo}`,
-  });
 
   return (
     <div className="container">
@@ -807,87 +792,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
         )}
       </div>
 
-      {/* Shipment Details Modal (optional path; not used if you navigate) */}
-      {showDetailsModal && selectedShipment && (
-        <div className="modal">
-          <div className="modal-content" style={{ maxWidth: '800px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">Shipment Details - {selectedShipment.invoiceNo}</h3>
-              <button className="close" onClick={() => setShowDetailsModal(false)}>&times;</button>
-            </div>
 
-            <div className="card">
-              <div className="card-header">
-                <h4>Shipment Information</h4>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div><strong>Date:</strong> {format(new Date(selectedShipment.date), 'MMM dd, yyyy')}</div>
-                <div><strong>Invoice No:</strong> {selectedShipment.invoiceNo}</div>
-                <div><strong>Party Name:</strong> {selectedShipment.partyName}</div>
-                {selectedShipment.startTime && (<div><strong>Start Time:</strong> {format(new Date(selectedShipment.startTime), 'MMM dd, yyyy HH:mm')}</div>)}
-                {selectedShipment.endTime && (<div><strong>End Time:</strong> {format(new Date(selectedShipment.endTime), 'MMM dd, yyyy HH:mm')}</div>)}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-header">
-                <h4>Boxes ({selectedShipment.boxes.length})</h4>
-              </div>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Box No</th>
-                    <th>Products</th>
-                    <th>Weight (KG)</th>
-                    <th>Dimensions (L×H×W)</th>
-                    <th>Box Dimension Weight (KG)</th>
-                    <th>Final Weight</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedShipment.boxes.map(box => (
-                    <tr key={box.id}>
-                      <td><strong>Box #{box.boxNo}</strong></td>
-                      <td>
-                        <div style={{ maxWidth: '300px' }}>
-                          {box.products.map(product => (
-                            <div key={product.id} style={{ padding: '5px', margin: '2px 0', backgroundColor: '#f8f9fa', borderRadius: '3px', fontSize: '12px' }}>
-                              <strong>{product.sku}</strong> - {product.productName} (Qty: {product.quantity})
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td>{box.weight}</td>
-                      <td>{box.length} × {box.height} × {box.width}</td>
-                      <td>{box.volumeWeight}</td>
-                      <td>{box.finalWeight}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-                <h5>Summary</h5>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <div><strong>Total Invoice Quantity:</strong> {selectedShipment.boxes.reduce((sum, box) =>
-                    sum + box.products.reduce((boxSum, product) => boxSum + parseInt(product.quantity), 0), 0
-                  )}</div>
-                  <div><strong>Total Weight:</strong> {selectedShipment.totalWeight?.toFixed(2) || '0.00'} kg</div>
-                  <div><strong>Total Volume:</strong> {selectedShipment.totalVolume?.toFixed(2) || '0.00'} cm³</div>
-                  <div><strong>Total Volume Weight:</strong> {selectedShipment.totalVolumeWeight?.toFixed(2) || '0.00'} kg</div>
-                  <div><strong>Charged Weight:</strong> {selectedShipment.chargedWeight?.toFixed(2) || '0.00'} kg</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="action-buttons">
-              <button className="btn btn-primary" onClick={printShipmentLabel}>Print Shipment Label</button>
-              <button className="btn btn-success" onClick={printBoxLabels}>Print Box Labels</button>
-              <button className="btn btn-secondary" onClick={() => setShowDetailsModal(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Edit Shipment Modal */}
       {showEditModal && editingShipment && (
@@ -908,52 +813,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
         </div>
       )}
 
-      {/* Hidden Print Content */}
-      <div style={{ display: 'none' }}>
-        <div id="shipment-label" className="print-only">
-          {selectedShipment && (
-            <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-              <h2 style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
-                SHIPMENT LABEL
-              </h2>
-              <div style={{ marginTop: '20px' }}>
-                <div><strong>Date:</strong> {format(new Date(selectedShipment.date), 'MMM dd, yyyy')}</div>
-                <div><strong>Invoice No:</strong> {selectedShipment.invoiceNo}</div>
-                <div><strong>Party Name:</strong> {selectedShipment.partyName}</div>
-                <div><strong>Total Boxes:</strong> {selectedShipment.boxes.length}</div>
-                <div><strong>Total Weight:</strong> {selectedShipment.totalWeight?.toFixed(2) || '0.00'} kg</div>
-                <div><strong>Charged Weight:</strong> {selectedShipment.chargedWeight?.toFixed(2) || '0.00'} kg</div>
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div id="box-labels" className="print-only">
-          {selectedShipment && selectedShipment.boxes.map(box => (
-            <div key={box.id} style={{ padding: '15px', border: '1px solid #000', margin: '10px 0', pageBreakInside: 'avoid', fontFamily: 'Arial, sans-serif' }}>
-              <h3 style={{ textAlign: 'center', margin: '0 0 15px 0' }}>BOX LABEL</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div><strong>Box No:</strong> {box.boxNo}</div>
-                <div><strong>Weight:</strong> {box.weight} kg</div>
-                <div><strong>Dimensions:</strong> {box.length}×{box.height}×{box.width} cm</div>
-                <div><strong>Volume:</strong> {box.volume} cm³</div>
-                <div><strong>Final Weight:</strong> {box.finalWeight} kg</div>
-              </div>
-              <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '3px' }}>
-                <strong>Products:</strong>
-                {box.products.map(product => (
-                  <div key={product.id} style={{ marginTop: '5px', fontSize: '12px' }}>
-                    {product.sku} - {product.productName} (Qty: {product.quantity})
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                <strong>Invoice:</strong> {selectedShipment.invoiceNo} | <strong>Party:</strong> {selectedShipment.partyName}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
