@@ -135,11 +135,13 @@ router.post('/', [
     .notEmpty()
     .withMessage('Party name is required'),
   body('startTime')
-    .notEmpty()
-    .withMessage('Start time is required'),
+    .optional()
+    .isString()
+    .withMessage('Start time must be a string'),
   body('endTime')
-    .notEmpty()
-    .withMessage('End time is required'),
+    .optional()
+    .isString()
+    .withMessage('End time must be a string'),
   body('boxes')
     .isArray({ min: 1 })
     .withMessage('At least one box is required'),
@@ -169,9 +171,12 @@ router.post('/', [
     .withMessage('Product quantity must be at least 1')
 ], async (req, res) => {
   try {
+
+    console.log("Create shipment request body:", req.body); // Debug: Log incoming request body
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array()); // Debug: Log validation errors
       return res.status(400).json({ 
         message: 'Validation failed',
         errors: errors.array() 
@@ -208,13 +213,28 @@ router.post('/', [
         });
         
         if (!existingProduct) {
+          // Fallback: Check if product exists without isActive filter
+          const allProducts = await Product.find({ sku: product.sku.toUpperCase() });
+          
+          if (allProducts.length > 0) {
+            const foundProduct = allProducts[0];
+            console.log(`✅ Using found product: ${foundProduct.sku} - ${foundProduct.name}`);
+            
+            // Update product info with required fields for MongoDB schema
+            product.product = foundProduct._id;
+            product.productName = foundProduct.name;
+            product.sku = foundProduct.sku;
+            
+            continue;
+          }
+          
           return res.status(400).json({ 
             message: `Product with SKU ${product.sku} not found` 
           });
         }
         
         // Update product info with required fields for MongoDB schema
-        product.product = existingProduct._id; // Add the required Product ObjectId
+        product.product = existingProduct._id;
         product.productName = existingProduct.name;
         product.sku = existingProduct.sku;
       }

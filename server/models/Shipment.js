@@ -89,31 +89,29 @@ const shipmentSchema = new mongoose.Schema({
   },
   startTime: {
     type: String,
-    required: [true, 'Start time is required']
   },
   endTime: {
     type: String,
-    required: [true, 'End time is required']
   },
   boxes: [boxSchema],
   totalWeight: {
     type: Number,
-    required: true,
+    required: false,
     min: [0, 'Total weight cannot be negative']
   },
   totalVolume: {
     type: Number,
-    required: true,
+    required: false,
     min: [0, 'Total volume cannot be negative']
   },
   totalVolumeWeight: {
     type: Number,
-    required: true,
+    required: false,
     min: [0, 'Total volume weight cannot be negative']
   },
   chargedWeight: {
     type: Number,
-    required: true,
+    required: false,
     min: [0, 'Charged weight cannot be negative']
   },
   status: {
