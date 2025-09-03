@@ -365,25 +365,6 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const isQuantityMatch = totalInvoiceQty === requiredQty;
   const isQuantityValid = requiredQty > 0;
 
-  // helpers for time selects (safe parsing)
-  const hour12FromTime = (time) => {
-    if (!time) return '';
-    const h24 = parseInt(time.split(':')[0]) || 0;
-    const h12 = h24 % 12 || 12;
-    return String(h12);
-  };
-  const minuteFromTime = (time) => (time ? time.split(':')[1] : '');
-  const ampmFromTime = (time) => {
-    if (!time) return 'AM';
-    const h24 = parseInt(time.split(':')[0]) || 0;
-    return h24 >= 12 ? 'PM' : 'AM';
-  };
-  const composeTime = (hour12, minute, ampm) => {
-    let h = parseInt(hour12) || 0;
-    if (ampm === 'PM' && h !== 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    return `${String(h).padStart(2, '0')}:${String(minute || '00').padStart(2, '0')}`;
-  };
 
 
 

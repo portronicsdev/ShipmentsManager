@@ -147,25 +147,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     );
   };
 
-  /** Open modal to add a brand new box */
-  const openAddBoxModal = (isShortBox = false) => {
-    setModalMode('add');
-    setNewBox({
-      id: undefined,
-      boxNo: (boxes.length + 1).toString(),
-      isShortBox,
-      products: [],
-      weight: 0,
-      length: 0,
-      height: 0,
-      width: 0,
-      volume: 0,
-      volumeWeight: 0,
-      finalWeight: 0
-    });
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
-    setShowBoxModal(true);
-  };
 
   /** Open modal to edit an existing box */
   const editBox = (box) => {
