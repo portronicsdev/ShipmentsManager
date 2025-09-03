@@ -50,9 +50,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
     }));
 
     const savedBoxes = localDB.get('tempBoxes') || [];
-    console.log('Loading saved boxes from localStorage:', savedBoxes);
     if (savedBoxes.length > 0) {
-      console.log('Setting boxes from localStorage:', savedBoxes);
       setBoxes(savedBoxes);
       setCurrentBox(prev => ({ ...prev, boxNo: (savedBoxes.length + 1).toString() }));
     }
@@ -152,11 +150,9 @@ const CreateShipment = ({ products = [], onAdd }) => {
   };
 
   const addBox = () => {
-    console.log('Adding box:', currentBox);
     if (!currentBox.length || !currentBox.height || !currentBox.width || !currentBox.weight) {
       if (!currentBox.isShortBox) {
           // For Short Boxes, skip dimension and weight validation  
-          console.log('Please fill in all box dimensions and weight:');
           setErrors({ message: 'Please fill in all box dimensions and weight.' });
           return;
       }
@@ -235,42 +231,30 @@ const CreateShipment = ({ products = [], onAdd }) => {
   };
 
   const removeBox = (boxId) => {
-    if (isRemoving) {
-      console.log('Remove operation already in progress, ignoring click');
+        if (isRemoving) {
       return;
     }
-    
-    console.log('Removing box with ID:', boxId);
-    console.log('Current boxes before removal:', boxes);
     
     // Check for duplicate IDs
     const duplicateIds = boxes.filter(box => box.id === boxId);
     if (duplicateIds.length > 1) {
-      console.warn('Found duplicate box IDs:', duplicateIds);
+      // Handle duplicate IDs if needed
     }
     
     setIsRemoving(true);
     
     // Use functional state update to ensure we're working with the latest state
     setBoxes(prevBoxes => {
-      console.log('Previous boxes state:', prevBoxes);
       const updatedBoxes = prevBoxes.filter(box => box.id !== boxId);
-      console.log('Boxes after filtering:', updatedBoxes);
       
       const renumberedBoxes = updatedBoxes.map((box, index) => ({
         ...box,
         boxNo: (index + 1).toString()
       }));
-      console.log('Renumbered boxes:', renumberedBoxes);
-
-      console.log('Setting boxes state to:', renumberedBoxes);
-      console.log('Saving to localStorage:', renumberedBoxes);
       localDB.set('tempBoxes', renumberedBoxes);
       
-      // Verify the save worked
+      // Reset the removing flag after a short delay
       setTimeout(() => {
-        const savedBoxes = localDB.get('tempBoxes');
-        console.log('Verification - saved boxes from localStorage:', savedBoxes);
         setIsRemoving(false);
       }, 100);
 
@@ -321,13 +305,10 @@ const CreateShipment = ({ products = [], onAdd }) => {
   };
 
   const handleSubmit = (e) => {
-    console.log("handlesubmit called, formData:", formData, "boxes:", boxes);
     e.preventDefault();
 
-    console.log("handlesubmit called, formData:", formData, "boxes:", boxes);
     if (!formData.invoiceNo || !formData.partyName || !formData.quantityToBePacked || boxes.length === 0) {
       setErrors({ message: 'Please fill in all required fields and add at least one box.' });
-      console.log(  'Form submission failed: missing required fields or no boxes added.');
       return;
     }
 
@@ -342,7 +323,6 @@ const CreateShipment = ({ products = [], onAdd }) => {
         // Find the product by SKU to get the ObjectId
         const foundProduct = products.find(p => p.sku === product.sku);
         if (!foundProduct) {
-          console.error(`Product with SKU ${product.sku} not found`);
           return product;
         }
         
@@ -354,7 +334,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
     }));
 
 
-    console.log("Start, end Time:", formData.startTime, endTime);
+
     const shipment = {
       id: uuidv4(),
       date: formData.date,
@@ -885,7 +865,6 @@ const CreateShipment = ({ products = [], onAdd }) => {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log('Remove button clicked for box:', box.id);
                               if (window.confirm(`Are you sure you want to remove Box #${box.boxNo}?`)) {
                                 removeBox(box.id);
                               }

@@ -16,20 +16,10 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     endTime: shipment.endTime || ''
   });
 
-  // Debug: Log shipment data to see what's available
-  useEffect(() => {
-    console.log('=== EDIT SHIPMENT DEBUG ===');
-    console.log('Shipment data:', shipment);
-    console.log('All shipment fields:', Object.keys(shipment));
-    console.log('Start time:', shipment.startTime);
-    console.log('End time:', shipment.endTime);
-    console.log('Required Qty:', shipment.requiredQty);
-    console.log('Full shipment object:', JSON.stringify(shipment, null, 2));
-  }, [shipment]);
+
 
   // Update formData when shipment prop changes
   useEffect(() => {
-    console.log('Updating formData with shipment:', shipment);
     setFormData({
       date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
       invoiceNo: shipment.invoiceNo || '',
@@ -43,19 +33,10 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const [boxes, setBoxes] = useState(shipment.boxes || []);
   const [editingBox, setEditingBox] = useState(null);
 
-  // Debug useEffect to track boxes state changes
+  // Ensure boxes have IDs
   useEffect(() => {
-    console.log('=== SHIPMENTS COMPONENT DEBUG ===');
-    console.log('Shipment boxes:', shipment.boxes);
-    console.log('Current boxes state:', boxes);
-    console.log('Box IDs:', boxes.map(box => ({ id: box.id, boxNo: box.boxNo })));
-    
-    // Check if boxes have IDs, if not, add them
     const boxesWithoutIds = boxes.filter(box => !box.id);
     if (boxesWithoutIds.length > 0) {
-      console.warn('Found boxes without IDs:', boxesWithoutIds);
-      console.log('Adding IDs to boxes without IDs...');
-      
       const updatedBoxes = boxes.map((box, index) => {
         if (!box.id) {
           return {
@@ -72,7 +53,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 
   // Update boxes state when shipment prop changes
   useEffect(() => {
-    console.log('Shipment prop changed, updating boxes state');
     setBoxes(shipment.boxes || []);
   }, [shipment.boxes]);
 
@@ -255,20 +235,12 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   };
 
   const removeBox = (boxIdentifier) => {
-    if (isRemoving) {
-      console.log('Remove operation already in progress, ignoring click');
+        if (isRemoving) {
       return;
     }
     
-    console.log('=== REMOVE BOX DEBUG ===');
-    console.log('Removing box with identifier:', boxIdentifier);
-    console.log('Identifier type:', typeof boxIdentifier);
-    console.log('Current boxes before removal:', boxes);
-    console.log('Box IDs in current state:', boxes.map(box => ({ id: box.id, type: typeof box.id, boxNo: box.boxNo })));
-    
     // If boxIdentifier is undefined, we can't remove
     if (!boxIdentifier) {
-      console.error('Cannot remove box: boxIdentifier is undefined');
       setIsRemoving(false);
       return;
     }
@@ -277,35 +249,23 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     
     // Use functional state update to ensure we're working with the latest state
     setBoxes(prevBoxes => {
-      console.log('Previous boxes state:', prevBoxes);
-      console.log('Previous box IDs:', prevBoxes.map(box => box.id));
-      
       // Try to remove by ID first, then by boxNo as fallback
       let updatedBoxes;
       if (prevBoxes.some(box => box.id === boxIdentifier)) {
         // Remove by ID
         updatedBoxes = prevBoxes.filter(box => box.id !== boxIdentifier);
-        console.log('Removed by ID');
       } else if (prevBoxes.some(box => box.boxNo === boxIdentifier)) {
         // Remove by boxNo
         updatedBoxes = prevBoxes.filter(box => box.boxNo !== boxIdentifier);
-        console.log('Removed by boxNo');
       } else {
-        console.warn('No box found with identifier:', boxIdentifier);
         setIsRemoving(false);
         return prevBoxes;
       }
-      
-      console.log('Boxes after filtering:', updatedBoxes);
-      console.log('Remaining box IDs:', updatedBoxes.map(box => box.id));
       
       const renumberedBoxes = updatedBoxes.map((box, index) => ({
         ...box,
         boxNo: (index + 1).toString()
       }));
-      console.log('Renumbered boxes:', renumberedBoxes);
-
-      console.log('Setting boxes state to:', renumberedBoxes);
       
       // Reset the removing flag after a short delay
       setTimeout(() => {
@@ -333,7 +293,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 
     setBoxes(prev => {
       const updatedBoxes = prev.map(b => (b.id === updated.id ? updated : b));
-      console.log('Box updated, recalculating weights...');
       return updatedBoxes;
     });
     setEditingBox(null);
@@ -351,7 +310,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         // Find the product by SKU to get the ObjectId
         const foundProduct = products.find(p => p.sku === product.sku);
         if (!foundProduct) {
-          console.error(`Product with SKU ${product.sku} not found`);
           return product;
         }
         
@@ -362,7 +320,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       })
     }));
 
-    console.log('Processed boxes:', processedBoxes);
+
 
     const updatedShipment = {
       ...shipment,
@@ -371,7 +329,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       boxes: processedBoxes
     };
     
-    console.log('Sending updated shipment to server:', updatedShipment);
+
     onSave(updatedShipment);
   };
 
@@ -583,13 +541,10 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Remove button clicked for box:', box);
-                        console.log('Box ID:', box.id, 'Type:', typeof box.id);
                         
                         // If box has no ID, we'll use the boxNo as a fallback
                         const boxIdentifier = box.id || box.boxNo;
                         if (!boxIdentifier) {
-                          console.error('Box has no ID or boxNo:', box);
                           return;
                         }
                         

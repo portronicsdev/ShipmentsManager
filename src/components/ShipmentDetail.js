@@ -5,7 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import BoxLabel from './BoxLabel';
 import ShipmentLabel from './ShipmentLabel';
 
-const ShipmentDetail = ({ shipments, products, onUpdate, onDelete }) => {
+const ShipmentDetail = ({ shipments, products }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   

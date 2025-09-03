@@ -120,108 +120,84 @@ function AppContent() {
 
   const addShipment = async (newShipment) => {
     try {
-      console.log('Adding new shipment:', newShipment);
       const response = await api.createShipment(newShipment);
       if (response.success) {
         setShipments(prev => [...prev, response.data.shipment]);
-        console.log('Shipment added successfully:', response.data.shipment);
         showSuccess('Shipment created successfully!');
       } else {
-        console.error('Failed to add shipment:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error adding shipment:', error);
       throw error;
     }
   };
 
   const updateShipment = async (updatedShipment) => {
     try {
-      console.log('Updating shipment:', updatedShipment);
       const response = await api.updateShipment(updatedShipment.id, updatedShipment);
       if (response.success) {
         setShipments(prev => prev.map(s => s.id === updatedShipment.id ? response.data.shipment : s));
-        console.log('Shipment updated successfully:', response.data.shipment);
         showSuccess('Shipment updated successfully!');
       } else {
-        console.error('Failed to update shipment:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error updating shipment:', error);
       throw error;
     }
   };
 
   const deleteShipment = async (shipmentId) => {
     try {
-      console.log('Deleting shipment:', shipmentId);
       const response = await api.deleteShipment(shipmentId);
       if (response.success) {
         setShipments(prev => prev.filter(s => s.id !== shipmentId));
-        console.log('Shipment deleted successfully');
         showSuccess('Shipment deleted successfully!');
       } else {
-        console.error('Failed to delete shipment:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error deleting shipment:', error);
       throw error;
     }
   };
 
   const addProduct = async (newProduct) => {
     try {
-      console.log('Adding new product:', newProduct);
       const response = await api.createProduct(newProduct);
       if (response.success) {
         setProducts(prev => [...prev, response.data.product]);
-        console.log('Product added successfully:', response.data.product);
         showSuccess('Product created successfully!');
       } else {
-        console.error('Failed to add product:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error adding product:', error);
       throw error;
     }
   };
 
   const updateProduct = async (updatedProduct) => {
     try {
-      console.log('Updating product:', updatedProduct);
       const response = await api.updateProduct(updatedProduct.id, updatedProduct);
       if (response.success) {
         setProducts(prev => prev.map(p => p.id === updatedProduct.id ? response.data.product : p));
-        console.log('Product updated successfully:', response.data.product);
         showSuccess('Product updated successfully!');
       } else {
-        console.error('Failed to update product:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error updating product:', error);
       throw error;
     }
   };
 
   const deleteProduct = async (productId) => {
     try {
-      console.log('Deleting product:', productId);
       const response = await api.deleteProduct(productId);
       if (response.success) {
         setProducts(prev => prev.filter(p => p.id !== productId));
-        console.log('Product deleted successfully');
         showSuccess('Product deleted successfully!');
       } else {
-        console.error('Failed to delete product:', response.message);
         throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
       throw error;
     }
   };
