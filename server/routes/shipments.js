@@ -244,9 +244,6 @@ router.post('/', [
       };
     });
 
-    // Calculate total weights
-    const weights = calculateWeights(processedBoxes);
-    
     // Debug: Log processed data
     console.log('Processed shipment data:', {
       processedBoxes: processedBoxes.map(box => ({
@@ -255,11 +252,10 @@ router.post('/', [
         firstProduct: box.products?.[0],
         dimensions: { length: box.length, height: box.height, width: box.width, weight: box.weight },
         calculated: { volume: box.volume, volumeWeight: box.volumeWeight, finalWeight: box.finalWeight }
-      })),
-      weights
+      }))
     });
 
-    // Create shipment
+    // Create shipment (weights are calculated at runtime)
     const shipment = await Shipment.create({
       invoiceNo: invoiceNo.toUpperCase(),
       partyName,
@@ -267,7 +263,6 @@ router.post('/', [
       endTime,
       date: new Date(req.body.date), // Convert string to Date object
       boxes: processedBoxes,
-      ...weights,
       notes,
       createdBy: req.user.id
     });
@@ -347,13 +342,16 @@ router.put('/:id', [
       }
     }
 
+    // Prepare update data (no need to calculate weights - they're calculated at runtime)
+    const updateData = {
+      ...req.body,
+      updatedBy: req.user.id
+    };
+
     // Update shipment
     const updatedShipment = await Shipment.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        updatedBy: req.user.id
-      },
+      updateData,
       { new: true, runValidators: true }
     )
     .populate('createdBy', 'name email')

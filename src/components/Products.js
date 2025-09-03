@@ -82,7 +82,6 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     const loadProducts = async () => {
       try {
         const response = await api.getProducts();
-        console.log('Loaded products:', response);
         if (response.success) {
           setProducts(response.data.products);
         }
@@ -99,10 +98,17 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     loadProducts();
   }, []);
 
-  const filteredProducts = (products || []).filter(product =>
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  
+
+  const filteredProducts = (products || []).filter(product => {
+
+    const sku = (product?.sku || "").toLowerCase();
+    const name = (product?.name || "").toLowerCase();
+
+    // must RETURN a boolean here
+    return sku.includes(searchTerm.toLowerCase()) ||
+          name.includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="container">

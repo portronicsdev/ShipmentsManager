@@ -9,7 +9,7 @@ const { protect, authorize } = require('../middleware/auth');
 // @access  Public (temporarily for development)
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find({ isActive: true })
+    const products = await Product.find({  })
       .populate('createdBy', 'name email');
     
     res.json({
@@ -88,6 +88,7 @@ router.post('/', [
     }
 
     const { sku, name, description, category } = req.body;
+    console.log('Creating product with SKU:', sku);
 
     // Check if SKU already exists
     const existingProduct = await Product.findOne({ sku: sku.toUpperCase() });
@@ -96,6 +97,7 @@ router.post('/', [
         message: 'Product with this SKU already exists' 
       });
     }
+
 
     // Create product
     const product = await Product.create({

@@ -7,10 +7,11 @@ const Auth = ({ onAuthSuccess }) => {
     name: '',
     email: '',
     password: '',
-    role: 'operator'
+    role: 'admin'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -89,32 +90,38 @@ const Auth = ({ onAuthSuccess }) => {
 
           <div className="form-group">
             <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              className="form-control"
-              placeholder="Enter your password"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                className="form-control"
+                placeholder="Enter your password"
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  color: '#6c757d'
+                }}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
 
-          {!isLogin && (
-            <div className="form-group">
-              <label>Role</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                className="form-control"
-              >
-                <option value="operator">Operator</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-          )}
 
           <button
             type="submit"

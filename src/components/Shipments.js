@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -18,6 +18,39 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const [boxes, setBoxes] = useState(shipment.boxes || []);
   const [editingBox, setEditingBox] = useState(null);
 
+  // Debug useEffect to track boxes state changes
+  useEffect(() => {
+    console.log('=== SHIPMENTS COMPONENT DEBUG ===');
+    console.log('Shipment boxes:', shipment.boxes);
+    console.log('Current boxes state:', boxes);
+    console.log('Box IDs:', boxes.map(box => ({ id: box.id, boxNo: box.boxNo })));
+    
+    // Check if boxes have IDs, if not, add them
+    const boxesWithoutIds = boxes.filter(box => !box.id);
+    if (boxesWithoutIds.length > 0) {
+      console.warn('Found boxes without IDs:', boxesWithoutIds);
+      console.log('Adding IDs to boxes without IDs...');
+      
+      const updatedBoxes = boxes.map((box, index) => {
+        if (!box.id) {
+          return {
+            ...box,
+            id: `box_${Date.now()}_${index}` // Generate a unique ID
+          };
+        }
+        return box;
+      });
+      
+      setBoxes(updatedBoxes);
+    }
+  }, [boxes, shipment.boxes]);
+
+  // Update boxes state when shipment prop changes
+  useEffect(() => {
+    console.log('Shipment prop changed, updating boxes state');
+    setBoxes(shipment.boxes || []);
+  }, [shipment.boxes]);
+
   const [currentProduct, setCurrentProduct] = useState({
     sku: '',
     productName: '',
@@ -27,6 +60,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   // Modal state for adding/editing boxes
   const [showBoxModal, setShowBoxModal] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit'
+  const [isRemoving, setIsRemoving] = useState(false);
   const [newBox, setNewBox] = useState({
     id: undefined,
     boxNo: '',
@@ -45,6 +79,25 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const calculateVolumeWeight = (length, height, width) => (((length || 0) * (height || 0) * (width || 0)) / 4500).toFixed(2);
   const calculateFinalWeight = (boxWeight, volumeWeight) =>
     Math.max(parseFloat(boxWeight || 0), parseFloat(volumeWeight || 0)).toFixed(2);
+
+  // Calculate total weight and charged weight for the shipment
+  const calculateShipmentWeights = (boxesArray) => {
+    let totalWeight = 0;
+    let totalVolumeWeight = 0;
+    
+    boxesArray.forEach(box => {
+      totalWeight += parseFloat(box.finalWeight || 0);
+      totalVolumeWeight += parseFloat(box.volumeWeight || 0);
+    });
+    
+    const chargedWeight = Math.max(totalWeight, totalVolumeWeight);
+    
+    return {
+      totalWeight: totalWeight.toFixed(2),
+      totalVolumeWeight: totalVolumeWeight.toFixed(2),
+      chargedWeight: chargedWeight.toFixed(2)
+    };
+  };
 
   const handleProductChange = (field, value) => {
     setCurrentProduct(prev => ({ ...prev, [field]: value }));
@@ -176,8 +229,66 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     closeBoxModal();
   };
 
-  const removeBox = (boxId) => {
-    setBoxes(prev => prev.filter(box => box.id !== boxId));
+  const removeBox = (boxIdentifier) => {
+    if (isRemoving) {
+      console.log('Remove operation already in progress, ignoring click');
+      return;
+    }
+    
+    console.log('=== REMOVE BOX DEBUG ===');
+    console.log('Removing box with identifier:', boxIdentifier);
+    console.log('Identifier type:', typeof boxIdentifier);
+    console.log('Current boxes before removal:', boxes);
+    console.log('Box IDs in current state:', boxes.map(box => ({ id: box.id, type: typeof box.id, boxNo: box.boxNo })));
+    
+    // If boxIdentifier is undefined, we can't remove
+    if (!boxIdentifier) {
+      console.error('Cannot remove box: boxIdentifier is undefined');
+      setIsRemoving(false);
+      return;
+    }
+    
+    setIsRemoving(true);
+    
+    // Use functional state update to ensure we're working with the latest state
+    setBoxes(prevBoxes => {
+      console.log('Previous boxes state:', prevBoxes);
+      console.log('Previous box IDs:', prevBoxes.map(box => box.id));
+      
+      // Try to remove by ID first, then by boxNo as fallback
+      let updatedBoxes;
+      if (prevBoxes.some(box => box.id === boxIdentifier)) {
+        // Remove by ID
+        updatedBoxes = prevBoxes.filter(box => box.id !== boxIdentifier);
+        console.log('Removed by ID');
+      } else if (prevBoxes.some(box => box.boxNo === boxIdentifier)) {
+        // Remove by boxNo
+        updatedBoxes = prevBoxes.filter(box => box.boxNo !== boxIdentifier);
+        console.log('Removed by boxNo');
+      } else {
+        console.warn('No box found with identifier:', boxIdentifier);
+        setIsRemoving(false);
+        return prevBoxes;
+      }
+      
+      console.log('Boxes after filtering:', updatedBoxes);
+      console.log('Remaining box IDs:', updatedBoxes.map(box => box.id));
+      
+      const renumberedBoxes = updatedBoxes.map((box, index) => ({
+        ...box,
+        boxNo: (index + 1).toString()
+      }));
+      console.log('Renumbered boxes:', renumberedBoxes);
+
+      console.log('Setting boxes state to:', renumberedBoxes);
+      
+      // Reset the removing flag after a short delay
+      setTimeout(() => {
+        setIsRemoving(false);
+      }, 100);
+      
+      return renumberedBoxes;
+    });
   };
 
   /** Inline editing save/cancel (the compact editor block) */
@@ -195,7 +306,11 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       finalWeight: parseFloat(finalWeight)
     };
 
-    setBoxes(prev => prev.map(b => (b.id === updated.id ? updated : b)));
+    setBoxes(prev => {
+      const updatedBoxes = prev.map(b => (b.id === updated.id ? updated : b));
+      console.log('Box updated, recalculating weights...');
+      return updatedBoxes;
+    });
     setEditingBox(null);
   };
 
@@ -222,6 +337,8 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       })
     }));
 
+    console.log('Processed boxes:', processedBoxes);
+
     const updatedShipment = {
       ...shipment,
       ...formData,
@@ -229,6 +346,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       boxes: processedBoxes
     };
     
+    console.log('Sending updated shipment to server:', updatedShipment);
     onSave(updatedShipment);
   };
 
@@ -393,10 +511,35 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                     </button>
                     <button
                       type="button"
-                      style={{ padding: '4px 8px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', fontSize: '10px', cursor: 'pointer' }}
-                      onClick={() => removeBox(box.id)}
+                      style={{ 
+                        padding: '4px 8px', 
+                        backgroundColor: isRemoving ? '#6c757d' : '#dc3545', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '3px', 
+                        fontSize: '10px', 
+                        cursor: isRemoving ? 'not-allowed' : 'pointer' 
+                      }}
+                      disabled={isRemoving}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Remove button clicked for box:', box);
+                        console.log('Box ID:', box.id, 'Type:', typeof box.id);
+                        
+                        // If box has no ID, we'll use the boxNo as a fallback
+                        const boxIdentifier = box.id || box.boxNo;
+                        if (!boxIdentifier) {
+                          console.error('Box has no ID or boxNo:', box);
+                          return;
+                        }
+                        
+                        if (window.confirm(`Are you sure you want to remove Box #${box.boxNo}?`)) {
+                          removeBox(boxIdentifier);
+                        }
+                      }}
                     >
-                      Remove
+                      {isRemoving ? 'Removing...' : 'Remove'}
                     </button>
                   </td>
                 </tr>
@@ -405,6 +548,46 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           </table>
         </div>
       </div>
+
+      {/* Weight Summary */}
+      {boxes.length > 0 && (
+        <div style={{
+          backgroundColor: '#e8f4fd',
+          borderRadius: '8px',
+          border: '2px solid #b3d9ff',
+          padding: '15px',
+          marginBottom: '15px'
+        }}>
+          <h5 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#2c3e50' }}>📊 Current Weight Summary</h5>
+          {(() => {
+            const weights = calculateShipmentWeights(boxes);
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '15px',
+                fontSize: '13px'
+              }}>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Total Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.totalWeight} kg</span>
+                </div>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Volume Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.totalVolumeWeight} kg</span>
+                </div>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Charged Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.chargedWeight} kg</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Inline compact editor (this was the "some bracket" culprit) */}
       {editingBox && (
@@ -590,7 +773,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                 Add Products to Box
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.5fr 2fr 1fr', gap: '15px', marginBottom: '15px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>SKU</label>
                   <select
@@ -700,6 +883,28 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [editingShipment, setEditingShipment] = useState(null);
+
+  // Runtime weight calculation function
+  const calculateShipmentWeights = (boxes) => {
+    if (!boxes || boxes.length === 0) {
+      return { totalWeight: 0, chargedWeight: 0 };
+    }
+    
+    let totalWeight = 0;
+    let totalVolumeWeight = 0;
+    
+    boxes.forEach(box => {
+      totalWeight += parseFloat(box.finalWeight || 0);
+      totalVolumeWeight += parseFloat(box.volumeWeight || 0);
+    });
+    
+    const chargedWeight = Math.max(totalWeight, totalVolumeWeight);
+    
+    return {
+      totalWeight: totalWeight.toFixed(2),
+      chargedWeight: chargedWeight.toFixed(2)
+    };
+  };
   const [showEditModal, setShowEditModal] = useState(false);
 
   const filteredShipments = shipments.filter(shipment => {
@@ -761,27 +966,30 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredShipments.map(shipment => (
-              <tr key={shipment.id}>
-                <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
-                <td>{shipment.invoiceNo}</td>
-                <td>{shipment.partyName}</td>
-                <td>{shipment.boxes.length}</td>
-                <td>{shipment.totalWeight?.toFixed(2) || '0.00'} kg</td>
-                <td>{shipment.chargedWeight?.toFixed(2) || '0.00'} kg</td>
-                <td>
-                  <button className="btn btn-secondary btn-sm" onClick={() => viewDetails(shipment)}>
-                    Details
-                  </button>
-                  <button className="btn btn-primary btn-sm" onClick={() => handleEdit(shipment)} style={{ marginLeft: '0.5rem' }}>
-                    Edit
-                  </button>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(shipment.id)} style={{ marginLeft: '0.5rem' }}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filteredShipments.map(shipment => {
+              const weights = calculateShipmentWeights(shipment.boxes);
+              return (
+                <tr key={shipment.id}>
+                  <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
+                  <td>{shipment.invoiceNo}</td>
+                  <td>{shipment.partyName}</td>
+                  <td>{shipment.boxes.length}</td>
+                  <td>{weights.totalWeight} kg</td>
+                  <td>{weights.chargedWeight} kg</td>
+                  <td>
+                    <button className="btn btn-secondary btn-sm" onClick={() => viewDetails(shipment)}>
+                      Details
+                    </button>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleEdit(shipment)} style={{ marginLeft: '0.5rem' }}>
+                      Edit
+                    </button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(shipment.id)} style={{ marginLeft: '0.5rem' }}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -804,6 +1012,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
             </div>
 
             <EditShipmentForm
+              key={editingShipment.id}
               shipment={editingShipment}
               products={products}
               onSave={handleSaveEdit}

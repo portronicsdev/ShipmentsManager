@@ -34,6 +34,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const [errors, setErrors] = useState({});
   const [showBoxModal, setShowBoxModal] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  const [isRemoving, setIsRemoving] = useState(false);
 
   // Auto-populate date and load saved boxes
   useEffect(() => {
@@ -41,11 +42,13 @@ const CreateShipment = ({ products = [], onAdd }) => {
     setFormData(prev => ({ ...prev, date: today }));
 
     const savedBoxes = localDB.get('tempBoxes') || [];
+    console.log('Loading saved boxes from localStorage:', savedBoxes);
     if (savedBoxes.length > 0) {
+      console.log('Setting boxes from localStorage:', savedBoxes);
       setBoxes(savedBoxes);
       setCurrentBox(prev => ({ ...prev, boxNo: (savedBoxes.length + 1).toString() }));
     }
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const n = v => (Number.isFinite(v) ? v : 0);
 
@@ -134,12 +137,9 @@ const CreateShipment = ({ products = [], onAdd }) => {
       }))
     };
 
-    const savedBoxes = localDB.get('tempBoxes') || [];
-    const newSaved = [...savedBoxes, copiedBox];
-    localDB.set('tempBoxes', newSaved);
-
     const newBoxes = [...boxes, copiedBox];
     setBoxes(newBoxes);
+    localDB.set('tempBoxes', newBoxes);
     setCurrentBox(prev => ({ ...prev, boxNo: (newBoxes.length + 1).toString() }));
   };
 
@@ -166,12 +166,9 @@ const CreateShipment = ({ products = [], onAdd }) => {
       finalWeight: parseFloat(finalWeight)
     };
 
-    const savedBoxes = localDB.get('tempBoxes') || [];
-    const newSaved = [...savedBoxes, newBox];
-    localDB.set('tempBoxes', newSaved);
-
     const newBoxes = [...boxes, newBox];
     setBoxes(newBoxes);
+    localDB.set('tempBoxes', newBoxes);
 
     setCurrentBox({
       boxNo: (newBoxes.length + 1).toString(),
@@ -225,16 +222,49 @@ const CreateShipment = ({ products = [], onAdd }) => {
   };
 
   const removeBox = (boxId) => {
-    const updatedBoxes = boxes.filter(box => box.id !== boxId);
-    const renumberedBoxes = updatedBoxes.map((box, index) => ({
-      ...box,
-      boxNo: (index + 1).toString()
-    }));
+    if (isRemoving) {
+      console.log('Remove operation already in progress, ignoring click');
+      return;
+    }
+    
+    console.log('Removing box with ID:', boxId);
+    console.log('Current boxes before removal:', boxes);
+    
+    // Check for duplicate IDs
+    const duplicateIds = boxes.filter(box => box.id === boxId);
+    if (duplicateIds.length > 1) {
+      console.warn('Found duplicate box IDs:', duplicateIds);
+    }
+    
+    setIsRemoving(true);
+    
+    // Use functional state update to ensure we're working with the latest state
+    setBoxes(prevBoxes => {
+      console.log('Previous boxes state:', prevBoxes);
+      const updatedBoxes = prevBoxes.filter(box => box.id !== boxId);
+      console.log('Boxes after filtering:', updatedBoxes);
+      
+      const renumberedBoxes = updatedBoxes.map((box, index) => ({
+        ...box,
+        boxNo: (index + 1).toString()
+      }));
+      console.log('Renumbered boxes:', renumberedBoxes);
 
-    setBoxes(renumberedBoxes);
-    localDB.set('tempBoxes', renumberedBoxes);
+      console.log('Setting boxes state to:', renumberedBoxes);
+      console.log('Saving to localStorage:', renumberedBoxes);
+      localDB.set('tempBoxes', renumberedBoxes);
+      
+      // Verify the save worked
+      setTimeout(() => {
+        const savedBoxes = localDB.get('tempBoxes');
+        console.log('Verification - saved boxes from localStorage:', savedBoxes);
+        setIsRemoving(false);
+      }, 100);
 
-    setCurrentBox(prev => ({ ...prev, boxNo: (renumberedBoxes.length + 1).toString() }));
+      setCurrentBox(prev => ({ ...prev, boxNo: (renumberedBoxes.length + 1).toString() }));
+      
+      return renumberedBoxes;
+    });
   };
 
   const openAddBoxModal = (isShortBox = false) => {
@@ -732,16 +762,24 @@ const CreateShipment = ({ products = [], onAdd }) => {
                             type="button"
                             style={{
                               padding: '4px 8px',
-                              backgroundColor: '#dc3545',
+                              backgroundColor: isRemoving ? '#6c757d' : '#dc3545',
                               color: 'white',
                               border: 'none',
                               borderRadius: '3px',
                               fontSize: '10px',
-                              cursor: 'pointer'
+                              cursor: isRemoving ? 'not-allowed' : 'pointer'
                             }}
-                            onClick={() => removeBox(box.id)}
+                            disabled={isRemoving}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Remove button clicked for box:', box.id);
+                              if (window.confirm(`Are you sure you want to remove Box #${box.boxNo}?`)) {
+                                removeBox(box.id);
+                              }
+                            }}
                           >
-                            Remove
+                            {isRemoving ? 'Removing...' : 'Remove'}
                           </button>
                         </div>
                       </td>
@@ -991,7 +1029,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                 {modalMode === 'edit' ? 'Edit Products in Box' : 'Add Products to Box'}
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.5fr 2fr 1fr', gap: '15px', marginBottom: '15px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
                     SKU
