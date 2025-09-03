@@ -134,6 +134,9 @@ router.post('/', [
     .trim()
     .notEmpty()
     .withMessage('Party name is required'),
+  body('requiredQty')
+    .isInt({ min: 1 })
+    .withMessage('Required quantity must be a positive integer'),
   body('startTime')
     .optional()
     .isString()
@@ -149,15 +152,19 @@ router.post('/', [
     .notEmpty()
     .withMessage('Box number is required'),
   body('boxes.*.weight')
+    .optional()
     .isFloat({ min: 0 })
     .withMessage('Box weight must be a positive number'),
   body('boxes.*.length')
+    .optional()
     .isFloat({ min: 0 })
     .withMessage('Box length must be a positive number'),
   body('boxes.*.height')
+    .optional()
     .isFloat({ min: 0 })
     .withMessage('Box height must be a positive number'),
   body('boxes.*.width')
+    .optional()
     .isFloat({ min: 0 })
     .withMessage('Box width must be a positive number'),
   body('boxes.*.products')
@@ -183,7 +190,7 @@ router.post('/', [
       });
     }
 
-    const { invoiceNo, partyName, startTime, endTime, boxes, notes } = req.body;
+    const { invoiceNo, partyName, requiredQty, startTime, endTime, boxes, notes } = req.body;
     
     // Debug: Log incoming data
     console.log('Incoming shipment data:', {
@@ -201,6 +208,14 @@ router.post('/', [
     if (existingShipment) {
       return res.status(400).json({ 
         message: 'Shipment with this invoice number already exists' 
+      });
+    }
+
+    // Check if more than one Short Box is being added
+    const shortBoxCount = boxes.filter(box => box.isShortBox).length;
+    if (shortBoxCount > 1) {
+      return res.status(400).json({ 
+        message: 'Only one Short Box is allowed per shipment' 
       });
     }
 
@@ -242,11 +257,11 @@ router.post('/', [
 
     // Calculate weights for each box
     const processedBoxes = boxes.map(box => {
-      // Ensure all dimensions are numbers
-      const length = parseFloat(box.length) || 0;
-      const height = parseFloat(box.height) || 0;
-      const width = parseFloat(box.width) || 0;
-      const weight = parseFloat(box.weight) || 0;
+      // Short Boxes have no dimensions (set to 0)
+      const length = box.isShortBox ? 0 : (parseFloat(box.length) || 0);
+      const height = box.isShortBox ? 0 : (parseFloat(box.height) || 0);
+      const width = box.isShortBox ? 0 : (parseFloat(box.width) || 0);
+      const weight = box.isShortBox ? 0 : (parseFloat(box.weight) || 0);
       
       const volume = length * height * width;
       const volumeWeight = volume / 4500;
@@ -279,6 +294,7 @@ router.post('/', [
     const shipment = await Shipment.create({
       invoiceNo: invoiceNo.toUpperCase(),
       partyName,
+      requiredQty: parseInt(requiredQty),
       startTime,
       endTime,
       date: new Date(req.body.date), // Convert string to Date object

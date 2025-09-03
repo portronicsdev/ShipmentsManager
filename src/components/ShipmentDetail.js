@@ -100,7 +100,7 @@ const ShipmentDetail = ({ shipments, products, onUpdate, onDelete }) => {
             onClick={handlePrintShipment}
             style={{
               padding: '10px 20px',
-              backgroundColor: '#28a745',
+              backgroundColor: '#dc3545',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -121,8 +121,7 @@ const ShipmentDetail = ({ shipments, products, onUpdate, onDelete }) => {
         marginBottom: '15px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
       }}>
-        <h2 style={{ fontSize: '18px', margin: '0 0 15px 0', color: '#2c3e50' }}>Shipment Overview</h2>
-        
+      
         {/* Basic Info Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px', marginBottom: '15px' }}>
           <div>
@@ -218,11 +217,11 @@ const ShipmentDetail = ({ shipments, products, onUpdate, onDelete }) => {
             border: '1px solid #b3d9ff',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '3px' }}>Total Volume</div>
+                            <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '3px' }}>Volume Weight</div>
             <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2c3e50' }}>
-              {shipment.boxes.reduce((sum, box) => sum + box.volume, 0).toFixed(2)}
+              {totalVolumeWeight.toFixed(2)}
             </div>
-            <div style={{ fontSize: '10px', color: '#6c757d' }}>cm³</div>
+            <div style={{ fontSize: '10px', color: '#6c757d' }}>kg</div>
           </div>
           
           <div style={{ 

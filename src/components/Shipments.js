@@ -11,9 +11,34 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
     invoiceNo: shipment.invoiceNo,
     partyName: shipment.partyName,
+    requiredQty: shipment.requiredQty || '',
     startTime: shipment.startTime || '',
     endTime: shipment.endTime || ''
   });
+
+  // Debug: Log shipment data to see what's available
+  useEffect(() => {
+    console.log('=== EDIT SHIPMENT DEBUG ===');
+    console.log('Shipment data:', shipment);
+    console.log('All shipment fields:', Object.keys(shipment));
+    console.log('Start time:', shipment.startTime);
+    console.log('End time:', shipment.endTime);
+    console.log('Required Qty:', shipment.requiredQty);
+    console.log('Full shipment object:', JSON.stringify(shipment, null, 2));
+  }, [shipment]);
+
+  // Update formData when shipment prop changes
+  useEffect(() => {
+    console.log('Updating formData with shipment:', shipment);
+    setFormData({
+      date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
+      invoiceNo: shipment.invoiceNo || '',
+      partyName: shipment.partyName || '',
+      requiredQty: shipment.requiredQty || shipment.quantityToBePacked || '',
+      startTime: shipment.startTime || '',
+      endTime: shipment.endTime || ''
+    });
+  }, [shipment]);
 
   const [boxes, setBoxes] = useState(shipment.boxes || []);
   const [editingBox, setEditingBox] = useState(null);
@@ -355,14 +380,13 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       {/* Shipment Information - Compact */}
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '15px',
-        marginBottom: '15px',
+        borderRadius: '4px',
+        padding: '8px',
+        marginBottom: '8px',
         border: '1px solid #dee2e6'
       }}>
-        <h4 style={{ fontSize: '16px', margin: '0 0 12px 0', color: '#2c3e50' }}>Edit Shipment Information</h4>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
+       
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Date</label>
             <input
@@ -397,46 +421,81 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           </div>
 
           <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Qty To be Packed</label>
+            <input
+              type="number"
+              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
+              value={formData.requiredQty || ''}
+              onChange={(e) => setFormData({ ...formData, requiredQty: e.target.value })}
+              required
+              placeholder="Qty"
+              min="1"
+            />
+          </div>
+
+          <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Start</label>
             <input
-              type="datetime-local"
-              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
+              type="text"
+              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px', backgroundColor: '#f8f9fa', color: '#495057' }}
               value={formData.startTime}
-              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+              readOnly
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>End</label>
             <input
-              type="datetime-local"
-              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
+              type="text"
+              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px', backgroundColor: '#f8f9fa', color: '#495057' }}
               value={formData.endTime}
-              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+              readOnly
             />
           </div>
         </div>
       </div>
+       {/* Weight Summary */}
+      {boxes.length > 0 && (
+        <div style={{
+          backgroundColor: '#e8f4fd',
+          borderRadius: '4px',
+          border: '2px solid #b3d9ff',
+          padding: '8px',
+          marginBottom: '8px'
+        }}>
+          <h5 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#2c3e50' }}>📊 Current Weight Summary</h5>
+          {(() => {
+            const weights = calculateShipmentWeights(boxes);
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '15px',
+                fontSize: '13px'
+              }}>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Total Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.totalWeight} kg</span>
+                </div>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Volume Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.totalVolumeWeight} kg</span>
+                </div>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Charged Weight:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{weights.chargedWeight} kg</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
-     
-      {/* Add Box / Short Box buttons */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', justifyContent: 'center' }}>
-        <button
-          type="button"
-          style={{ padding: '12px 30px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', minWidth: '150px' }}
-          onClick={() => openAddBoxModal(false)}
-        >
-          ➕ Add Box
-        </button>
 
-        <button
-          type="button"
-          style={{ padding: '12px 30px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', minWidth: '150px' }}
-          onClick={() => openAddBoxModal(true)}
-        >
-          ⚠️ Add Short Box
-        </button>
-      </div>
+
 
       {/* Current Boxes */}
       <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '15px', marginBottom: '15px', border: '1px solid #dee2e6' }}>
@@ -549,46 +608,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         </div>
       </div>
 
-      {/* Weight Summary */}
-      {boxes.length > 0 && (
-        <div style={{
-          backgroundColor: '#e8f4fd',
-          borderRadius: '8px',
-          border: '2px solid #b3d9ff',
-          padding: '15px',
-          marginBottom: '15px'
-        }}>
-          <h5 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#2c3e50' }}>📊 Current Weight Summary</h5>
-          {(() => {
-            const weights = calculateShipmentWeights(boxes);
-            return (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '15px',
-                fontSize: '13px'
-              }}>
-                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                  <strong style={{ color: '#2c3e50' }}>Total Weight:</strong>
-                  <br />
-                  <span style={{ color: '#6c757d' }}>{weights.totalWeight} kg</span>
-                </div>
-                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                  <strong style={{ color: '#2c3e50' }}>Volume Weight:</strong>
-                  <br />
-                  <span style={{ color: '#6c757d' }}>{weights.totalVolumeWeight} kg</span>
-                </div>
-                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                  <strong style={{ color: '#2c3e50' }}>Charged Weight:</strong>
-                  <br />
-                  <span style={{ color: '#6c757d' }}>{weights.chargedWeight} kg</span>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
+     
       {/* Inline compact editor (this was the "some bracket" culprit) */}
       {editingBox && (
         <div style={{ background: '#fff', border: '1px solid #dee2e6', borderRadius: 8, padding: 12, marginBottom: 15 }}>
@@ -673,22 +693,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         </div>
       )}
 
-      {/* Action Buttons - Compact */}
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', padding: '15px 0', borderTop: '1px solid #dee2e6', marginTop: '15px' }}>
-        <button
-          type="submit"
-          style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', minWidth: '120px' }}
-        >
-          Save Changes
-        </button>
-        <button
-          type="button"
-          style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', minWidth: '120px' }}
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-      </div>
+
 
       {/* Box Modal (Add/Edit) */}
       {showBoxModal && (
@@ -871,6 +876,116 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           </div>
         </div>
       )}
+
+      {/* Final Action Buttons */}
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', padding: '12px 0', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            minWidth: '100px'
+          }}
+          onClick={() => {
+            const newBox = {
+              id: `box_${Date.now()}`,
+              boxNo: (boxes.length + 1).toString(),
+              isShortBox: false,
+              products: [],
+              weight: 0,
+              length: 0,
+              height: 0,
+              width: 0,
+              volume: 0,
+              volumeWeight: 0,
+              finalWeight: 0
+            };
+            setNewBox(newBox);
+            setModalMode('add');
+            setShowBoxModal(true);
+          }}
+        >
+          Add Box
+        </button>
+        
+        <button
+          type="button"
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            minWidth: '100px'
+          }}
+          onClick={() => {
+            const newBox = {
+              id: `box_${Date.now()}`,
+              boxNo: (boxes.length + 1).toString(),
+              isShortBox: true,
+              products: [],
+              weight: 0,
+              length: 0,
+              height: 0,
+              width: 0,
+              volume: 0,
+              volumeWeight: 0,
+              finalWeight: 0
+            };
+            setNewBox(newBox);
+            setModalMode('add');
+            setShowBoxModal(true);
+          }}
+        >
+          Add Short Box
+        </button>
+
+
+
+        <button
+          type="submit"
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            minWidth: '100px'
+          }}
+        >
+          Save Changes
+        </button>
+
+        <button
+          type="button"
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            minWidth: '100px'
+          }}
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
     </form>
   );
 };

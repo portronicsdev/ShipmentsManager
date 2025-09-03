@@ -87,6 +87,11 @@ const shipmentSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Party name cannot be more than 100 characters']
   },
+  requiredQty: {
+    type: Number,
+    required: [true, 'Required quantity is mandatory'],
+    min: [1, 'Required quantity must be at least 1']
+  },
   startTime: {
     type: String,
   },
