@@ -887,16 +887,16 @@ const CreateShipment = ({ products = [], onAdd }) => {
             style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '30px',
-              maxWidth: '800px',
+              padding: '20px',
+              maxWidth: '600px',
               width: '90%',
-              maxHeight: '90vh',
+              maxHeight: '85vh',
               overflowY: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', margin: 0, color: '#2c3e50' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                              <h2 style={{ fontSize: '18px', margin: 0, color: '#2c3e50' }}>
                 {modalMode === 'edit' ? 
                   `Edit ${editingBox?.isShortBox ? 'Short ' : ''}Box #${editingBox?.boxNo}` : 
                   `Add ${currentBox.isShortBox ? 'Short ' : ''}Box #${currentBox.boxNo}`
@@ -919,15 +919,15 @@ const CreateShipment = ({ products = [], onAdd }) => {
 
             {/* Box Dimensions - Only for Normal Boxes */}
             {!currentBox.isShortBox && (
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '16px', margin: '0 0 15px 0', color: '#34495e' }}>Box Dimensions</h3>
+              <div style={{ marginBottom: '15px' }}>
+                <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#34495e' }}>Box Dimensions</h3>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Height (CM) <span style={{ color: '#dc3545' }}>*</span></label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Height (CM) <span style={{ color: '#dc3545' }}>*</span></label>
                     <input
                       type="number"
-                      style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                       value={modalMode === 'edit' ? editingBox?.height : currentBox.height}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -940,10 +940,10 @@ const CreateShipment = ({ products = [], onAdd }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Width (CM) <span style={{ color: '#dc3545' }}>*</span></label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Width (CM) <span style={{ color: '#dc3545' }}>*</span></label>
                     <input
                       type="number"
-                      style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                       value={modalMode === 'edit' ? editingBox?.width : currentBox.width}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -956,10 +956,10 @@ const CreateShipment = ({ products = [], onAdd }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Length (CM) <span style={{ color: '#dc3545' }}>*</span></label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Length (CM) <span style={{ color: '#dc3545' }}>*</span></label>
                     <input
                       type="number"
-                      style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                       value={modalMode === 'edit' ? editingBox?.length : currentBox.length}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -972,10 +972,10 @@ const CreateShipment = ({ products = [], onAdd }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Weight (KG) <span style={{ color: '#dc3545' }}>*</span></label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Weight (KG) <span style={{ color: '#dc3545' }}>*</span></label>
                     <input
                       type="number"
-                      style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                       value={modalMode === 'edit' ? editingBox?.weight : currentBox.weight}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -1012,23 +1012,23 @@ const CreateShipment = ({ products = [], onAdd }) => {
             {/* Add Products */}
             <div
               style={{
-                padding: '20px',
+                padding: '15px',
                 backgroundColor: '#f8f9fa',
                 borderRadius: '8px',
-                marginBottom: '20px'
+                marginBottom: '15px'
               }}
             >
-              <h4 style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#34495e' }}>
+              <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#34495e' }}>
                 {modalMode === 'edit' ? 'Edit Products in Box' : 'Add Products to Box'}
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.5fr 2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '3fr 0.8fr 1fr', gap: '15px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
                     SKU <span style={{ color: '#dc3545' }}>*</span>
                   </label>
                   <select
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.sku}
                     onChange={(e) => handleProductChange('sku', e.target.value)}
                   >
@@ -1042,35 +1042,15 @@ const CreateShipment = ({ products = [], onAdd }) => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
                     Quantity <span style={{ color: '#dc3545' }}>*</span>
                   </label>
                   <input
                     type="number"
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.quantity}
                     onChange={(e) => handleProductChange('quantity', parseInt(e.target.value) || 1)}
                     min="1"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
-                    Product Name
-                  </label>
-                  <input
-                    type="text"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '2px solid #e9ecef',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      backgroundColor: '#f8f9fa'
-                    }}
-                    value={currentProduct.productName}
-                    readOnly
-                    placeholder="Auto-populated from SKU"
                   />
                 </div>
 
@@ -1078,7 +1058,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                   <button
                     type="button"
                     style={{
-                      padding: '10px 20px',
+                      padding: '8px 16px',
                       backgroundColor: '#17a2b8',
                       color: 'white',
                       border: 'none',
@@ -1099,13 +1079,13 @@ const CreateShipment = ({ products = [], onAdd }) => {
             {(modalMode === 'edit' ? (editingBox?.products?.length > 0) : (currentBox.products.length > 0)) && (
               <div
                 style={{
-                  padding: '20px',
+                  padding: '15px',
                   backgroundColor: '#e8f4fd',
                   borderRadius: '8px',
-                  marginBottom: '20px'
+                  marginBottom: '15px'
                 }}
               >
-                <h5 style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#2c3e50' }}>
+                <h5 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#2c3e50' }}>
                   Products in Box #{modalMode === 'edit' ? editingBox?.boxNo : currentBox.boxNo}:
                 </h5>
                 <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
