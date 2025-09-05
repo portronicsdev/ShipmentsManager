@@ -310,18 +310,44 @@ const createSuperCategories = async (data) => {
   const superCategories = [...new Set(data.map(row => row.superCategory))];
   const superCategoryMap = new Map();
   
+  console.log(`Creating ${superCategories.length} super categories...`);
+  
+  // Get existing super categories in one query
+  const existingSuperCategories = await SuperCategory.find({}, 'name').lean();
+  const existingSuperCategorySet = new Set(existingSuperCategories.map(sc => sc.name));
+  
+  // Prepare bulk insert data
+  const superCategoriesToInsert = [];
+  
   for (const superCategoryName of superCategories) {
+    if (existingSuperCategorySet.has(superCategoryName)) {
+      // Find existing super category ID
+      const existing = existingSuperCategories.find(sc => sc.name === superCategoryName);
+      superCategoryMap.set(superCategoryName, existing._id);
+    } else {
+      superCategoriesToInsert.push({ name: superCategoryName });
+    }
+  }
+  
+  // Bulk insert new super categories
+  if (superCategoriesToInsert.length > 0) {
     try {
-      let superCategory = await SuperCategory.findOne({ name: superCategoryName });
-      
-      if (!superCategory) {
-        superCategory = new SuperCategory({ name: superCategoryName });
-        await superCategory.save();
-      }
-      
-      superCategoryMap.set(superCategoryName, superCategory._id);
+      const insertedSuperCategories = await SuperCategory.insertMany(superCategoriesToInsert, { ordered: false });
+      insertedSuperCategories.forEach(sc => {
+        superCategoryMap.set(sc.name, sc._id);
+      });
+      console.log(`Created ${insertedSuperCategories.length} new super categories`);
     } catch (error) {
-      console.error(`Error creating super category ${superCategoryName}:`, error.message);
+      console.error('Bulk super category insert error:', error.message);
+      // Fall back to individual inserts
+      for (const superCategoryData of superCategoriesToInsert) {
+        try {
+          const superCategory = await SuperCategory.create(superCategoryData);
+          superCategoryMap.set(superCategory.name, superCategory._id);
+        } catch (individualError) {
+          console.error(`Error creating super category ${superCategoryData.name}:`, individualError.message);
+        }
+      }
     }
   }
   
@@ -335,21 +361,45 @@ const createCategories = async (data, superCategoryMap) => {
   })))];
   const categoryMap = new Map();
   
+  console.log(`Creating ${categories.length} categories...`);
+  
+  // Get existing categories in one query
+  const existingCategories = await Category.find({}, 'name superCategoryId').lean();
+  const existingCategorySet = new Set(existingCategories.map(c => `${c.name}-${c.superCategoryId}`));
+  
+  // Prepare bulk insert data
+  const categoriesToInsert = [];
+  
   for (const categoryData of categories) {
+    const categoryKey = `${categoryData.name}-${categoryData.superCategoryId}`;
+    if (existingCategorySet.has(categoryKey)) {
+      // Find existing category ID
+      const existing = existingCategories.find(c => c.name === categoryData.name && c.superCategoryId.toString() === categoryData.superCategoryId.toString());
+      categoryMap.set(categoryData.name, existing._id);
+    } else {
+      categoriesToInsert.push(categoryData);
+    }
+  }
+  
+  // Bulk insert new categories
+  if (categoriesToInsert.length > 0) {
     try {
-      let category = await Category.findOne({ 
-        name: categoryData.name, 
-        superCategoryId: categoryData.superCategoryId 
+      const insertedCategories = await Category.insertMany(categoriesToInsert, { ordered: false });
+      insertedCategories.forEach(c => {
+        categoryMap.set(c.name, c._id);
       });
-      
-      if (!category) {
-        category = new Category(categoryData);
-        await category.save();
-      }
-      
-      categoryMap.set(categoryData.name, category._id);
+      console.log(`Created ${insertedCategories.length} new categories`);
     } catch (error) {
-      console.error(`Error creating category ${categoryData.name}:`, error.message);
+      console.error('Bulk category insert error:', error.message);
+      // Fall back to individual inserts
+      for (const categoryData of categoriesToInsert) {
+        try {
+          const category = await Category.create(categoryData);
+          categoryMap.set(category.name, category._id);
+        } catch (individualError) {
+          console.error(`Error creating category ${categoryData.name}:`, individualError.message);
+        }
+      }
     }
   }
   
@@ -359,13 +409,24 @@ const createCategories = async (data, superCategoryMap) => {
 const createProducts = async (data, categoryMap, userId) => {
   let successCount = 0;
   let errorCount = 0;
+  let skippedCount = 0;
   const errors = [];
+  
+  console.log(`Starting to create ${data.length} products...`);
+  console.log(`Category map has ${categoryMap.size} categories`);
+  
+  // Get all existing SKUs in one query
+  const existingSkus = await Product.find({}, 'sku').lean();
+  const existingSkuSet = new Set(existingSkus.map(p => p.sku));
+  
+  // Prepare bulk insert data
+  const productsToInsert = [];
+  const batchSize = 100; // Process in batches of 100
   
   for (const row of data) {
     try {
-      const existingProduct = await Product.findOne({ sku: row.sku });
-      
-      if (existingProduct) {
+      if (existingSkuSet.has(row.sku)) {
+        skippedCount++;
         continue; // Skip existing products
       }
       
@@ -385,11 +446,10 @@ const createProducts = async (data, categoryMap, userId) => {
         createdBy: userId
       };
       
-      const product = new Product(productData);
-      await product.save();
+      productsToInsert.push(productData);
       
-      successCount++;
     } catch (error) {
+      console.error(`Error preparing product ${row.sku}:`, error.message);
       errors.push({ 
         sku: row.sku, 
         productName: row.productName,
@@ -399,7 +459,48 @@ const createProducts = async (data, categoryMap, userId) => {
     }
   }
   
-  return { successCount, errorCount, errors };
+  console.log(`Prepared ${productsToInsert.length} products for bulk insert`);
+  
+  // Bulk insert in batches
+  for (let i = 0; i < productsToInsert.length; i += batchSize) {
+    const batch = productsToInsert.slice(i, i + batchSize);
+    try {
+      await Product.insertMany(batch, { ordered: false });
+      successCount += batch.length;
+      console.log(`Inserted batch ${Math.floor(i/batchSize) + 1}: ${batch.length} products`);
+    } catch (error) {
+      // Handle duplicate key errors and other bulk errors
+      if (error.code === 11000) {
+        // Duplicate key error - some products already exist
+        const duplicateCount = error.result?.nInserted || 0;
+        successCount += duplicateCount;
+        skippedCount += (batch.length - duplicateCount);
+      } else {
+        console.error(`Batch insert error:`, error.message);
+        // Fall back to individual inserts for this batch
+        for (const productData of batch) {
+          try {
+            await Product.create(productData);
+            successCount++;
+          } catch (individualError) {
+            if (individualError.code === 11000) {
+              skippedCount++;
+            } else {
+              errors.push({ 
+                sku: productData.sku, 
+                productName: productData.productName,
+                error: individualError.message 
+              });
+              errorCount++;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`Product creation complete: ${successCount} created, ${skippedCount} skipped, ${errorCount} errors`);
+  return { successCount, errorCount, skippedCount, errors };
 };
 
 // @route   POST /api/products/import
@@ -407,6 +508,9 @@ const createProducts = async (data, categoryMap, userId) => {
 // @access  Private
 router.post('/import', protect, upload.single('file'), async (req, res) => {
   try {
+    console.log('Import endpoint hit');
+    console.log('File info:', req.file ? { name: req.file.originalname, size: req.file.size } : 'No file');
+    
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
@@ -420,8 +524,12 @@ router.post('/import', protect, upload.single('file'), async (req, res) => {
     const worksheet = workbook.Sheets[sheetName];
     const rawData = xlsx.utils.sheet_to_json(worksheet);
     
+    console.log(`Read ${rawData.length} rows from Excel file`);
+    
     // Clean and validate data
     const cleanDataArray = cleanData(rawData);
+    
+    console.log(`Cleaned data: ${cleanDataArray.length} valid rows`);
     
     if (cleanDataArray.length === 0) {
       return res.status(400).json({ 
@@ -431,13 +539,20 @@ router.post('/import', protect, upload.single('file'), async (req, res) => {
     }
     
     // Create super categories
+    console.log('Creating super categories...');
     const superCategoryMap = await createSuperCategories(cleanDataArray);
+    console.log(`Created ${superCategoryMap.size} super categories`);
     
     // Create categories
+    console.log('Creating categories...');
     const categoryMap = await createCategories(cleanDataArray, superCategoryMap);
+    console.log(`Created ${categoryMap.size} categories`);
     
     // Create products
+    console.log('Creating products...');
     const result = await createProducts(cleanDataArray, categoryMap, req.user.id);
+    
+    console.log('Import complete:', result);
     
     res.json({
       success: true,
@@ -445,6 +560,7 @@ router.post('/import', protect, upload.single('file'), async (req, res) => {
       data: {
         totalProcessed: cleanDataArray.length,
         successCount: result.successCount,
+        skippedCount: result.skippedCount,
         errorCount: result.errorCount,
         errors: result.errors
       }
