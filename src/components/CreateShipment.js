@@ -28,6 +28,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const [currentProduct, setCurrentProduct] = useState({
     sku: '',
     productName: '',
+    externalSku: '',
     quantity: 1
   });
 
@@ -102,6 +103,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
       id: Date.now().toString(),
       sku: currentProduct.sku,
       productName: product.name,
+      externalSku: currentProduct.externalSku || '',
       quantity: parseInt(currentProduct.quantity) || 1,
       product: product._id || product.id // Add the required 'product' field (Product ObjectId)
     };
@@ -111,7 +113,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
       products: [...(targetBox?.products || prev.products), newProduct]
     }));
 
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
+    setCurrentProduct({ sku: '', productName: '', externalSku: '', quantity: 1 });
     setErrors({});
   };
 
@@ -188,7 +190,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
       width: 0
     });
 
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
+    setCurrentProduct({ sku: '', productName: '', externalSku: '', quantity: 1 });
     setErrors({});
     setShowBoxModal(false);
   };
@@ -293,7 +295,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
       height: isShortBox ? shortBoxDimensions.height : 0,
       width: isShortBox ? shortBoxDimensions.width : 0
     });
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
+    setCurrentProduct({ sku: '', productName: '', externalSku: '', quantity: 1 });
     setErrors({});
     setShowBoxModal(true);
   };
@@ -369,96 +371,9 @@ const CreateShipment = ({ products = [], onAdd }) => {
 
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '20px' }}>
-      {/* Sticky Action Buttons - Left Side */}
-      <div style={{
-        position: 'sticky',
-        top: '20px',
-        height: 'fit-content',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        minWidth: '160px'
-      }}>
-        <button
-          type="button"
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: '100%',
-            textAlign: 'center'
-          }}
-          onClick={() => openAddBoxModal(false)}
-        >
-          ➕ Add Box
-        </button>
-        
-        <button
-          type="button"
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: '100%',
-            textAlign: 'center'
-          }}
-          onClick={() => openAddBoxModal(true)}
-        >
-          ⚠️ Add Short Box
-        </button>
-        
-        <button
-          type="button"
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: '100%',
-            textAlign: 'center'
-          }}
-          onClick={handleSubmit}
-        >
-          💾 Save Shipment
-        </button>
-        
-        <button
-          type="button"
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: '100%',
-            textAlign: 'center'
-          }}
-          onClick={() => navigate('/shipments')}
-        >
-          ❌ Cancel
-        </button>
-      </div>
-
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Main Content */}
-      <div style={{ flex: 1 }}>
+      <div>
       {errors.message && (
         <div
           style={{
@@ -775,7 +690,14 @@ const CreateShipment = ({ products = [], onAdd }) => {
                               fontSize: '11px'
                             }}
                           >
-                            <span style={{ fontWeight: '500' }}>{product.sku}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                              <span style={{ fontWeight: '500', fontSize: '10px' }}>{product.sku}</span>
+                              {product.externalSku && (
+                                <span style={{ fontSize: '9px', color: '#6c757d' }}>
+                                  Ext: {product.externalSku}
+                                </span>
+                              )}
+                            </div>
                             <span
                               style={{
                                 backgroundColor: '#28a745',
@@ -863,7 +785,91 @@ const CreateShipment = ({ products = [], onAdd }) => {
           </div>
         )}
 
-
+        {/* Action Buttons - Bottom */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          marginTop: '20px',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+          width: '98%',
+          margin: '0 auto 20px auto'
+        }}>
+          <h3 style={{ fontSize: '16px', margin: '0 0 15px 0', color: '#2c3e50' }}>Final Actions</h3>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              type="button"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                minWidth: '140px'
+              }}
+              onClick={() => openAddBoxModal(false)}
+            >
+              ➕ Add Box
+            </button>
+            
+            <button
+              type="button"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                minWidth: '140px'
+              }}
+              onClick={() => openAddBoxModal(true)}
+            >
+              ⚠️ Add Short Box
+            </button>
+            
+            <button
+              type="button"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                minWidth: '140px'
+              }}
+              onClick={handleSubmit}
+            >
+              💾 Save Shipment
+            </button>
+            
+            <button
+              type="button"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                minWidth: '140px'
+              }}
+              onClick={() => navigate('/shipments')}
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        </div>
 
       </form>
 
@@ -1022,7 +1028,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                 {modalMode === 'edit' ? 'Edit Products in Box' : 'Add Products to Box'}
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '3fr 0.8fr 1fr', gap: '15px', marginBottom: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 1fr', gap: '15px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
                     SKU <span style={{ color: '#dc3545' }}>*</span>
@@ -1039,6 +1045,19 @@ const CreateShipment = ({ products = [], onAdd }) => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
+                    External SKU
+                  </label>
+                  <input
+                    type="text"
+                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    value={currentProduct.externalSku}
+                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
+                    placeholder="Optional"
+                  />
                 </div>
 
                 <div>
@@ -1106,6 +1125,11 @@ const CreateShipment = ({ products = [], onAdd }) => {
                         <div>
                           <div style={{ fontWeight: '600', color: '#2c3e50', fontSize: '13px' }}>{product.sku}</div>
                           <div style={{ color: '#6c757d', fontSize: '12px' }}>{product.productName}</div>
+                          {product.externalSku && (
+                            <div style={{ color: '#17a2b8', fontSize: '11px', fontStyle: 'italic' }}>
+                              External SKU: {product.externalSku}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span

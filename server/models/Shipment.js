@@ -14,6 +14,12 @@ const productInBoxSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  externalSku: {
+    type: String,
+    required: false,
+    trim: true,
+    maxlength: [50, 'External SKU cannot be more than 50 characters']
+  },
   quantity: {
     type: Number,
     required: true,

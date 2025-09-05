@@ -59,6 +59,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const [currentProduct, setCurrentProduct] = useState({
     sku: '',
     productName: '',
+    externalSku: '',
     quantity: 1
   });
 
@@ -124,6 +125,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       id: Date.now().toString(),
       sku: currentProduct.sku,
       productName: product.name,
+      externalSku: currentProduct.externalSku || '',
       quantity: parseInt(currentProduct.quantity) || 1,
       product: product._id || product.id // Add the required 'product' field (Product ObjectId)
     };
@@ -136,7 +138,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       // Not adding anywhere (no context)
       return;
     }
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
+    setCurrentProduct({ sku: '', productName: '', externalSku: '', quantity: 1 });
   };
 
 
@@ -171,7 +173,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       volumeWeight: 0,
       finalWeight: 0
     });
-    setCurrentProduct({ sku: '', productName: '', quantity: 1 });
+    setCurrentProduct({ sku: '', productName: '', externalSku: '', quantity: 1 });
   };
 
   /** Add a new box (modalMode = 'add') */
@@ -502,10 +504,22 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                     <button
                       type="button"
                       style={{ padding: '4px 8px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '3px', fontSize: '10px', cursor: 'pointer', marginRight: '3px' }}
-                      onClick={() => {/* (intentionally left) add via modal */}}
-                      title="Add new products to this box"
+                      onClick={() => {
+                        // Copy the box
+                        const copiedBox = {
+                          ...box,
+                          id: `box_${Date.now()}`,
+                          boxNo: (boxes.length + 1).toString(),
+                          products: (box.products || []).map(product => ({
+                            ...product,
+                            id: Date.now().toString() + Math.random().toString(36).slice(2, 11)
+                          }))
+                        };
+                        setBoxes(prev => [...prev, copiedBox]);
+                      }}
+                      title="Copy this box"
                     >
-                      Add
+                      Copy
                     </button>
                     <button
                       type="button"
@@ -714,7 +728,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                 Add Products to Box
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.5fr 2fr 1fr', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.5fr 1fr', gap: '15px', marginBottom: '15px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>SKU</label>
                   <select
@@ -732,6 +746,17 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                 </div>
 
                 <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>External SKU</label>
+                  <input
+                    type="text"
+                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    value={currentProduct.externalSku}
+                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Quantity</label>
                   <input
                     type="number"
@@ -742,24 +767,31 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                   />
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Product Name</label>
-                  <input
-                    type="text"
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px', backgroundColor: '#f8f9fa' }}
-                    value={currentProduct.productName}
-                    readOnly
-                    placeholder="Auto-populated from SKU"
-                  />
-                </div>
-
                 <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                   <button
                     type="button"
                     style={{ padding: '10px 20px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', width: '100%' }}
-                    onClick={addProductToBox}
+                    onClick={() => {
+                      if (modalMode === 'edit') {
+                        // Copy the current box being edited
+                        const copiedBox = {
+                          ...newBox,
+                          id: `box_${Date.now()}`,
+                          boxNo: (boxes.length + 1).toString(),
+                          products: (newBox.products || []).map(product => ({
+                            ...product,
+                            id: Date.now().toString() + Math.random().toString(36).slice(2, 11)
+                          }))
+                        };
+                        setBoxes(prev => [...prev, copiedBox]);
+                        closeBoxModal();
+                      } else {
+                        // Add product for new boxes
+                        addProductToBox();
+                      }
+                    }}
                   >
-                    Add Product
+                    {modalMode === 'edit' ? 'Copy Box' : 'Add Product'}
                   </button>
                 </div>
               </div>
@@ -774,6 +806,11 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                     <div key={product.id} style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6', fontSize: '12px' }}>
                       <div style={{ fontWeight: '600', marginBottom: '4px' }}>{product.sku}</div>
                       <div style={{ color: '#6c757d', marginBottom: '4px' }}>{product.productName}</div>
+                      {product.externalSku && (
+                        <div style={{ color: '#17a2b8', fontSize: '11px', fontStyle: 'italic', marginBottom: '4px' }}>
+                          Ext: {product.externalSku}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ backgroundColor: '#28a745', color: 'white', padding: '2px 6px', borderRadius: '3px', fontSize: '11px' }}>
                           Qty: {product.quantity}

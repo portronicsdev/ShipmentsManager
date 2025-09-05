@@ -16,7 +16,39 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showOperationSuccess, setShowOperationSuccess] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
   const navigate = useNavigate();
+
+  // Auto-hide sidebar when not pinned (desktop only)
+  useEffect(() => {
+    if (!sidebarPinned && window.innerWidth > 768) {
+      const timer = setTimeout(() => {
+        setSidebarOpen(false);
+      }, 3000); // Auto-hide after 3 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [sidebarPinned, sidebarOpen]);
+
+  // Show sidebar on hover when not pinned (desktop only)
+  useEffect(() => {
+    if (!sidebarPinned && window.innerWidth > 768) {
+      const handleMouseEnter = () => setSidebarOpen(true);
+      const handleMouseLeave = () => setSidebarOpen(false);
+
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.addEventListener('mouseenter', handleMouseEnter);
+        sidebar.addEventListener('mouseleave', handleMouseLeave);
+
+        return () => {
+          sidebar.removeEventListener('mouseenter', handleMouseEnter);
+          sidebar.removeEventListener('mouseleave', handleMouseLeave);
+        };
+      }
+    }
+  }, [sidebarPinned]);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -202,42 +234,236 @@ function AppContent() {
     }
   };
 
-    return (
+        return (
     <div className="App">
-      <nav className="navbar">
-        <div className="container">
-          <div className="navbar-brand">
-            <h1>🚢 Shipments Manager</h1>
+      {/* Sliding Sidebar */}
+      <div 
+        className={`sidebar ${sidebarOpen ? 'open' : 'closed'} ${sidebarPinned ? 'pinned' : ''}`}
+        style={{
+          position: 'fixed',
+          left: sidebarOpen ? '0' : '-280px',
+          top: 0,
+          width: '280px',
+          height: '100vh',
+          backgroundColor: 'white',
+          boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+          transition: 'left 0.3s ease',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Sidebar Header */}
+        <div style={{
+          padding: '20px',
+          borderBottom: '2px solid #e9ecef',
+          backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600' }}>🚢 Shipments Manager</h1>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setSidebarPinned(!sidebarPinned)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+                title={sidebarPinned ? 'Unpin Sidebar' : 'Pin Sidebar'}
+              >
+                {sidebarPinned ? '📌' : '📍'}
+              </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
-          <ul className="navbar-nav">
-            <li className="nav-item">
-              <Link to="/" className="nav-link">Shipments</Link>
-            </li>
-            <li className="nav-item">
-              <Link to="/products" className="nav-link">Products</Link>
-            </li>
-            <li className="nav-item">
-              <Link to="/create-shipment" className="nav-link">Create Shipment</Link>
-            </li>
-          </ul>
           {user && (
-            <div className="user-info">
-              <span>Welcome, {user.name}!</span>
-              <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-                Logout
+            <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
+              Welcome, {user.name}!
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Menu */}
+        <div style={{ padding: '20px', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Link
+              to="/shipments"
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+            >
+              📦 Shipments
+            </Link>
+            
+            <Link
+              to="/products"
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#1e7e34'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
+            >
+              🏷️ Products
+            </Link>
+            
+            <Link
+              to="/create-shipment"
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#ffc107',
+                color: '#212529',
+                textDecoration: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e0a800'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffc107'}
+            >
+              ➕ Create Shipment
+            </Link>
+          </div>
+
+          {/* Logout Button */}
+          {user && (
+            <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#5a6268'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#6c757d'}
+              >
+                🚪 Logout
               </button>
             </div>
           )}
         </div>
-      </nav>
+      </div>
 
-              <main className="main-content">
+      {/* Sidebar Toggle Button */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            position: 'fixed',
+            left: '10px',
+            top: '10px',
+            zIndex: 999,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          ☰
+        </button>
+      )}
+
+      {/* Hover area for sidebar (desktop only) */}
+      {!sidebarOpen && !sidebarPinned && window.innerWidth > 768 && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            width: '10px',
+            height: '100vh',
+            zIndex: 998,
+            cursor: 'pointer'
+          }}
+          onMouseEnter={() => setSidebarOpen(true)}
+        />
+      )}
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          onClick={() => !sidebarPinned && setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 999,
+            display: window.innerWidth <= 768 ? 'block' : 'none'
+          }}
+        />
+      )}
+
+              <main className="main-content" style={{
+                marginLeft: sidebarOpen ? '280px' : '0',
+                transition: 'margin-left 0.3s ease',
+                padding: '20px'
+              }}>
           {loading ? (
             <div className="loading">Loading...</div>
           ) : !user ? (
             <Auth onAuthSuccess={handleAuthSuccess} />
           ) : (
             <>
+
               {showSuccessMessage && (
                 <div className="success-message">
                   <div className="success-content">
