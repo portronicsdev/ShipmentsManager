@@ -31,6 +31,8 @@ const CreateShipment = ({ products = [], onAdd }) => {
     externalSku: '',
     quantity: 1
   });
+  const [skuSearchResults, setSkuSearchResults] = useState([]);
+  const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
 
   const [editingBox, setEditingBox] = useState(null);
   const [errors, setErrors] = useState({});
@@ -57,6 +59,14 @@ const CreateShipment = ({ products = [], onAdd }) => {
     }
   }, []); // Empty dependency array - only run once on mount
 
+  // Handle clicking outside SKU suggestions
+  useEffect(() => {
+    if (showSkuSuggestions) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSkuSuggestions]);
+
   const n = v => (Number.isFinite(v) ? v : 0);
 
   const calculateVolume = (length, height, width) => {
@@ -82,8 +92,42 @@ const CreateShipment = ({ products = [], onAdd }) => {
       const product = products.find(p => p.sku === value);
       setCurrentProduct(prev => ({
         ...prev,
-        productName: product ? product.name : ''
+        productName: product ? product.productName : ''
       }));
+    }
+  };
+
+  const handleSkuChange = (e) => {
+    const skuValue = e.target.value.toUpperCase();
+    setCurrentProduct(prev => ({ ...prev, sku: skuValue }));
+
+    if (skuValue.length >= 2) {
+      // Search for products with matching SKU
+      const matchingProducts = products.filter(product => 
+        product.sku.toLowerCase().includes(skuValue.toLowerCase())
+      );
+      setSkuSearchResults(matchingProducts);
+      setShowSkuSuggestions(matchingProducts.length > 0);
+    } else {
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
+    }
+  };
+
+  const handleSkuSelect = (selectedProduct) => {
+    setCurrentProduct({
+      sku: `${selectedProduct.sku} - ${selectedProduct.productName}`,
+      productName: selectedProduct.productName,
+      externalSku: '',
+      quantity: 1
+    });
+    setShowSkuSuggestions(false);
+    setSkuSearchResults([]);
+  };
+
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.sku-suggestions-container')) {
+      setShowSkuSuggestions(false);
     }
   };
 
@@ -93,16 +137,18 @@ const CreateShipment = ({ products = [], onAdd }) => {
       return;
     }
 
-    const product = products.find(p => p.sku === currentProduct.sku);
+    // Extract just the SKU part (before the " - ") for product lookup
+    const skuOnly = currentProduct.sku.split(' - ')[0];
+    const product = products.find(p => p.sku === skuOnly);
     if (!product) {
-      setErrors({ message: 'Product not found.' });
+      setErrors({ message: `Product with SKU ${skuOnly} not found.` });
       return;
     }
 
     const newProduct = {
       id: Date.now().toString(),
-      sku: currentProduct.sku,
-      productName: product.name,
+      sku: skuOnly, // Store just the SKU, not the full format
+      productName: product.productName,
       externalSku: currentProduct.externalSku || '',
       quantity: parseInt(currentProduct.quantity) || 1,
       product: product._id || product.id // Add the required 'product' field (Product ObjectId)
@@ -795,7 +841,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
           width: '98%',
           margin: '0 auto 20px auto'
         }}>
-          <h3 style={{ fontSize: '16px', margin: '0 0 15px 0', color: '#2c3e50' }}>Final Actions</h3>
+        
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               type="button"
@@ -888,18 +934,20 @@ const CreateShipment = ({ products = [], onAdd }) => {
             alignItems: 'center',
             zIndex: 1000
           }}
+          onClick={handleClickOutside}
         >
           <div
             style={{
               backgroundColor: 'white',
               borderRadius: '12px',
               padding: '20px',
-              maxWidth: '600px',
+              maxWidth: '800px',
               width: '90%',
               maxHeight: '85vh',
               overflowY: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                               <h2 style={{ fontSize: '18px', margin: 0, color: '#2c3e50' }}>
@@ -1029,22 +1077,56 @@ const CreateShipment = ({ products = [], onAdd }) => {
               </h4>
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 1fr', gap: '15px', marginBottom: '10px' }}>
-                <div>
+                <div className="sku-suggestions-container" style={{ position: 'relative' }}>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
                     SKU <span style={{ color: '#dc3545' }}>*</span>
                   </label>
-                  <select
+                  <input
+                    type="text"
                     style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.sku}
-                    onChange={(e) => handleProductChange('sku', e.target.value)}
-                  >
-                    <option value="">Select SKU</option>
-                    {products.map((product) => (
-                      <option key={product._id || product.sku} value={product.sku}>
-                        {product.sku} - {product.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={handleSkuChange}
+                    placeholder="Type SKU to search..."
+                    autoComplete="off"
+                  />
+                  {showSkuSuggestions && skuSearchResults.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderTop: 'none',
+                      borderRadius: '0 0 6px 6px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      {skuSearchResults.map(product => (
+                        <div
+                          key={product._id}
+                          style={{
+                            padding: '10px 15px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #eee',
+                            fontSize: '12px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          onClick={() => handleSkuSelect(product)}
+                        >
+                          <div style={{ fontWeight: '600', color: '#333', marginBottom: '2px' }}>
+                            {product.sku} - {product.productName}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#999' }}>
+                            {product.categoryId?.name} ({product.categoryId?.superCategoryId?.name})
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>

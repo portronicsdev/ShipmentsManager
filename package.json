@@ -16,13 +16,15 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
     "react-to-print": "^2.15.1",
     "uuid": "^9.0.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -34,6 +36,7 @@
     "install-server": "npm install --prefix server",
     "seed": "node server/seeder.js",
     "seed:reset": "node server/seeder.js",
+    "populate-excel": "node scripts/populate-from-excel.js",
     "render-postbuild": "npm run build"
   },
   "eslintConfig": {

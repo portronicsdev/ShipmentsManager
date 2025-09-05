@@ -56,12 +56,22 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     setBoxes(shipment.boxes || []);
   }, [shipment.boxes]);
 
+  // Handle clicking outside SKU suggestions
+  useEffect(() => {
+    if (showSkuSuggestions) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSkuSuggestions]);
+
   const [currentProduct, setCurrentProduct] = useState({
     sku: '',
     productName: '',
     externalSku: '',
     quantity: 1
   });
+  const [skuSearchResults, setSkuSearchResults] = useState([]);
+  const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
 
   // Modal state for adding/editing boxes
   const [showBoxModal, setShowBoxModal] = useState(false);
@@ -109,8 +119,42 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     setCurrentProduct(prev => ({ ...prev, [field]: value }));
     if (field === 'sku') {
       const product = products.find(p => p.sku === value);
-      if (product) setCurrentProduct(prev => ({ ...prev, productName: product.name }));
+      if (product) setCurrentProduct(prev => ({ ...prev, productName: product.productName }));
       else setCurrentProduct(prev => ({ ...prev, productName: '' }));
+    }
+  };
+
+  const handleSkuChange = (e) => {
+    const skuValue = e.target.value.toUpperCase();
+    setCurrentProduct(prev => ({ ...prev, sku: skuValue }));
+
+    if (skuValue.length >= 2) {
+      // Search for products with matching SKU
+      const matchingProducts = products.filter(product => 
+        product.sku.toLowerCase().includes(skuValue.toLowerCase())
+      );
+      setSkuSearchResults(matchingProducts);
+      setShowSkuSuggestions(matchingProducts.length > 0);
+    } else {
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
+    }
+  };
+
+  const handleSkuSelect = (selectedProduct) => {
+    setCurrentProduct({
+      sku: `${selectedProduct.sku} - ${selectedProduct.productName}`,
+      productName: selectedProduct.productName,
+      externalSku: '',
+      quantity: 1
+    });
+    setShowSkuSuggestions(false);
+    setSkuSearchResults([]);
+  };
+
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.sku-suggestions-container')) {
+      setShowSkuSuggestions(false);
     }
   };
 
@@ -118,13 +162,15 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const addProductToBox = () => {
     if (!currentProduct.sku || !currentProduct.quantity) return;
 
-    const product = products.find(p => p.sku === currentProduct.sku);
+    // Extract just the SKU part (before the " - ") for product lookup
+    const skuOnly = currentProduct.sku.split(' - ')[0];
+    const product = products.find(p => p.sku === skuOnly);
     if (!product) return;
 
     const item = {
       id: Date.now().toString(),
-      sku: currentProduct.sku,
-      productName: product.name,
+      sku: skuOnly, // Store just the SKU, not the full format
+      productName: product.productName,
       externalSku: currentProduct.externalSku || '',
       quantity: parseInt(currentProduct.quantity) || 1,
       product: product._id || product.id // Add the required 'product' field (Product ObjectId)
@@ -729,20 +775,54 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
               </h4>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.5fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                <div>
+                <div className="sku-suggestions-container" style={{ position: 'relative' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>SKU</label>
-                  <select
+                  <input
+                    type="text"
                     style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.sku}
-                    onChange={(e) => handleProductChange('sku', e.target.value)}
-                  >
-                    <option value="">Select SKU</option>
-                    {products.map((product) => (
-                      <option key={product._id || product.id || product.sku} value={product.sku}>
-                        {product.sku} - {product.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={handleSkuChange}
+                    placeholder="Type SKU to search..."
+                    autoComplete="off"
+                  />
+                  {showSkuSuggestions && skuSearchResults.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderTop: 'none',
+                      borderRadius: '0 0 6px 6px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      {skuSearchResults.map(product => (
+                        <div
+                          key={product._id}
+                          style={{
+                            padding: '10px 15px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #eee',
+                            fontSize: '12px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          onClick={() => handleSkuSelect(product)}
+                        >
+                          <div style={{ fontWeight: '600', color: '#333', marginBottom: '2px' }}>
+                            {product.sku} - {product.productName}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#999' }}>
+                            {product.categoryId?.name} ({product.categoryId?.superCategoryId?.name})
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1017,6 +1097,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
     }
   };
 
+
   const viewDetails = (shipment) => {
     // if you want modal: setSelectedShipment(shipment); setShowDetailsModal(true);
     navigate(`/shipments/${shipment.id}`);
@@ -1093,7 +1174,7 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
       {/* Edit Shipment Modal */}
       {showEditModal && editingShipment && (
         <div className="modal">
-          <div className="modal-content" style={{ maxWidth: '800px' }}>
+          <div className="modal-content" style={{ maxWidth: '900px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Edit Shipment - {editingShipment.invoiceNo}</h3>
               <button className="close" onClick={() => setShowEditModal(false)}>&times;</button>

@@ -27,12 +27,18 @@ class ApiService {
     
     const config = {
       headers: {
-        'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
+
+    // Only set Content-Type to application/json if it's not already set and body is not FormData
+    // This allows FormData to set its own Content-Type with boundary
+    if (!config.headers['Content-Type'] && !(config.body instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
 
     try {
       const response = await fetch(url, config);
@@ -63,10 +69,18 @@ class ApiService {
 
   // POST request
   async post(endpoint, data) {
-    return this.request(endpoint, {
+    const options = {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
+    };
+
+    // If data is FormData, send it directly without JSON.stringify
+    if (data instanceof FormData) {
+      options.body = data;
+    } else {
+      options.body = JSON.stringify(data);
+    }
+
+    return this.request(endpoint, options);
   }
 
   // PUT request
@@ -176,6 +190,53 @@ class ApiService {
   // Get current user profile
   async getCurrentUser() {
     return this.get('/auth/me');
+  }
+
+  // Super Categories endpoints
+  async getSuperCategories() {
+    return this.get('/super-categories');
+  }
+
+  async createSuperCategory(superCategoryData) {
+    return this.post('/super-categories', superCategoryData);
+  }
+
+  async updateSuperCategory(id, superCategoryData) {
+    return this.put(`/super-categories/${id}`, superCategoryData);
+  }
+
+  async deleteSuperCategory(id) {
+    return this.delete(`/super-categories/${id}`);
+  }
+
+  // Categories endpoints
+  async getCategories() {
+    return this.get('/categories');
+  }
+
+  async getCategoriesBySuperCategory(superCategoryId) {
+    return this.get(`/categories/super-category/${superCategoryId}`);
+  }
+
+  async createCategory(categoryData) {
+    return this.post('/categories', categoryData);
+  }
+
+  async updateCategory(id, categoryData) {
+    return this.put(`/categories/${id}`, categoryData);
+  }
+
+  async deleteCategory(id) {
+    return this.delete(`/categories/${id}`);
+  }
+
+  // Product import endpoint
+  async importProducts(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Don't set Content-Type manually - let the browser set it with the proper boundary
+    return this.post('/products/import', formData);
   }
 }
 

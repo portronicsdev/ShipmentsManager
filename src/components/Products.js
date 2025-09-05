@@ -3,21 +3,29 @@ import api from '../utils/api';
 
 const Products = ({ onAdd, onUpdate, onDelete, user }) => {
   const [products, setProducts] = useState([]);
+  const [superCategories, setSuperCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     sku: '',
-    name: '',
-    description: '',
-    category: ''
+    productName: '',
+    origin: '',
+    categoryId: '',
+    superCategoryId: ''
   });
+  const [skuSearchResults, setSkuSearchResults] = useState([]);
+  const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   // Check if user has permission to manage products
   const canManageProducts = user && (user.role === 'admin' || user.role === 'manager');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     try {
       if (editingProduct) {
@@ -34,7 +42,9 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
         }
       }
       
-      setFormData({ sku: '', name: '' });
+      setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
       setEditingProduct(null);
       setShowModal(false);
     } catch (error) {
@@ -52,7 +62,10 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     setEditingProduct(product);
     setFormData({
       sku: product.sku,
-      name: product.name
+      productName: product.productName,
+      origin: product.origin || '',
+      categoryId: product.categoryId?._id || '',
+      superCategoryId: product.categoryId?.superCategoryId?._id || ''
     });
     setShowModal(true);
   };
@@ -77,41 +90,165 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     }
   };
 
-  // Load products from API on component mount
+  const handleSkuChange = (e) => {
+    const skuValue = e.target.value.toUpperCase();
+    setFormData({ ...formData, sku: skuValue });
+
+    if (skuValue.length >= 2) {
+      // Search for products with matching SKU
+      const matchingProducts = products.filter(product => 
+        product.sku.toLowerCase().includes(skuValue.toLowerCase())
+      );
+      setSkuSearchResults(matchingProducts);
+      setShowSkuSuggestions(matchingProducts.length > 0);
+    } else {
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
+    }
+  };
+
+  const handleSkuSelect = (selectedProduct) => {
+    setFormData({
+      sku: selectedProduct.sku,
+      productName: selectedProduct.productName,
+      origin: selectedProduct.origin || '',
+      categoryId: selectedProduct.categoryId?._id || '',
+      superCategoryId: selectedProduct.categoryId?.superCategoryId?._id || ''
+    });
+    setShowSkuSuggestions(false);
+    setSkuSearchResults([]);
+  };
+
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.sku-suggestions-container')) {
+      setShowSkuSuggestions(false);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const allowedTypes = ['.xlsx', '.xls'];
+      const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      if (allowedTypes.includes(ext)) {
+        setImportFile(file);
+      } else {
+        alert('Please select an Excel file (.xlsx or .xls)');
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      alert('Please select a file to import');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const response = await api.importProducts(importFile);
+      if (response.success) {
+        const { totalProcessed, successCount, errorCount, errors } = response.data;
+        
+        let message = `Import completed!\n\nTotal processed: ${totalProcessed}\nSuccessfully imported: ${successCount}\nErrors: ${errorCount}`;
+        
+        if (errorCount > 0 && errors.length > 0) {
+          message += '\n\nFailed records:';
+          errors.slice(0, 10).forEach((error, index) => {
+            const productInfo = error.productName ? `${error.sku} (${error.productName})` : error.sku;
+            message += `\n${index + 1}. ${productInfo} - ${error.error}`;
+          });
+          
+          if (errors.length > 10) {
+            message += `\n... and ${errors.length - 10} more errors`;
+          }
+        }
+        
+        alert(message);
+        
+        // Refresh products list
+        const productsResponse = await api.getProducts();
+        if (productsResponse.success) {
+          setProducts(productsResponse.data.products);
+        }
+        
+        setShowImportModal(false);
+        setImportFile(null);
+      } else {
+        alert('Import failed: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error importing products:', error);
+      if (error.message.includes('Unauthorized')) {
+        alert('Your session has expired. Please login again.');
+        window.location.reload();
+      } else {
+        alert('Error importing products: ' + error.message);
+      }
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Load products, categories, and super categories from API on component mount
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
-        const response = await api.getProducts();
-        if (response.success) {
-          setProducts(response.data.products);
+        const [productsResponse, superCategoriesResponse, categoriesResponse] = await Promise.all([
+          api.getProducts(),
+          api.getSuperCategories(),
+          api.getCategories()
+        ]);
+        
+        if (productsResponse.success) {
+          setProducts(productsResponse.data.products);
+        }
+        
+        if (superCategoriesResponse.success) {
+          setSuperCategories(superCategoriesResponse.data.superCategories);
+        }
+        
+        if (categoriesResponse.success) {
+          setCategories(categoriesResponse.data.categories);
         }
       } catch (error) {
-        console.error('Error loading products:', error);
+        console.error('Error loading data:', error);
+        console.error('Error details:', error.message);
         // If it's an authentication error, the API utility will handle it
         if (error.message.includes('Unauthorized')) {
           // User needs to login again
+          alert('Your session has expired. Please login again.');
           window.location.reload();
         }
       }
     };
 
-    loadProducts();
+    loadData();
   }, []);
+
+  // Handle clicking outside SKU suggestions
+  useEffect(() => {
+    if (showSkuSuggestions) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSkuSuggestions]);
 
   
 
   const filteredProducts = (products || []).filter(product => {
 
     const sku = (product?.sku || "").toLowerCase();
-    const name = (product?.name || "").toLowerCase();
+    const productName = (product?.productName || "").toLowerCase();
 
     // must RETURN a boolean here
     return sku.includes(searchTerm.toLowerCase()) ||
-          name.includes(searchTerm.toLowerCase());
+          productName.includes(searchTerm.toLowerCase());
   });
 
   return (
-    <div className="container">
+    <div className="container products-page">
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Products Management</h2>
@@ -119,12 +256,20 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
 
         <div className="action-buttons">
           {canManageProducts ? (
+          <div style={{ display: 'flex', gap: '10px' }}>
             <button 
               className="btn btn-primary" 
               onClick={() => setShowModal(true)}
             >
               Add New Product
             </button>
+            <button 
+              className="btn btn-success"
+              onClick={() => setShowImportModal(true)}
+            >
+              Import Products
+            </button>
+          </div>
           ) : (
             <div className="permission-notice">
               <span className="text-muted">
@@ -144,38 +289,55 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
           />
         </div>
 
-        <table className="table">
+        <table className="table" style={{ fontSize: '0.9rem' }}>
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Product Name</th>
-              <th>Actions</th>
+              <th style={{ width: '12%' }}>SKU</th>
+              <th style={{ width: '30%' }}>Product Name</th>
+              <th style={{ width: '12%' }}>Origin</th>
+              <th style={{ width: '18%' }}>Category</th>
+              <th style={{ width: '18%' }}>Super Category</th>
+              <th style={{ width: '10%', minWidth: '150px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.map(product => (
-              <tr key={product.id}>
+              <tr key={product._id || product.id}>
                 <td>{product.sku}</td>
-                <td>{product.name}</td>
-                <td>
+                <td>{product.productName}</td>
+                <td>{product.origin || '-'}</td>
+                <td>{product.categoryId?.name || '-'}</td>
+                <td>{product.categoryId?.superCategoryId?.name || '-'}</td>
+                <td style={{ padding: '4px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                   {canManageProducts ? (
-                    <>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
                       <button 
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleEdit(product)}
+                        style={{ 
+                          padding: '4px 8px', 
+                          fontSize: '0.8rem',
+                          minWidth: '50px',
+                          flexShrink: 0
+                        }}
                       >
                         Edit
                       </button>
                       <button 
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDelete(product.id)}
-                        style={{ marginLeft: '0.5rem' }}
+                        style={{ 
+                          padding: '4px 8px', 
+                          fontSize: '0.8rem',
+                          minWidth: '50px',
+                          flexShrink: 0
+                        }}
                       >
                         Delete
                       </button>
-                    </>
+                    </div>
                   ) : (
-                    <span className="text-muted">View only</span>
+                    <span className="text-muted" style={{ fontSize: '0.75rem' }}>View only</span>
                   )}
                 </td>
               </tr>
@@ -191,66 +353,227 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
       </div>
 
       {showModal && (
-        <div className="modal">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={handleClickOutside}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">
+              <h3>
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </h3>
               <button 
-                className="close" 
+                className="btn-close" 
                 onClick={() => {
                   setShowModal(false);
                   setEditingProduct(null);
-                  setFormData({ sku: '', name: '' });
+                  setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
                 }}
               >
-                &times;
+                ×
               </button>
             </div>
             
+            <div className="modal-body">
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">SKU</label>
+              <div className="form-group sku-suggestions-container" style={{ position: 'relative' }}>
+                <label className="form-label">SKU <span style={{ color: '#dc3545' }}>*</span></label>
                 <input
                   type="text"
                   className="form-control"
                   value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  onChange={handleSkuChange}
                   required
-                  placeholder="Enter product SKU"
+                  placeholder="Type SKU to search products..."
+                  autoComplete="off"
                 />
+                {showSkuSuggestions && skuSearchResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #ccc',
+                    borderTop: 'none',
+                    borderRadius: '0 0 4px 4px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    zIndex: 1000,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    {skuSearchResults.map(product => (
+                      <div
+                        key={product._id}
+                        style={{
+                          padding: '10px 15px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #eee',
+                          fontSize: '0.9rem'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        onClick={() => handleSkuSelect(product)}
+                      >
+                        <div style={{ fontWeight: '600', color: '#333', marginBottom: '2px' }}>
+                          {product.sku} - {product.productName}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#999' }}>
+                          {product.categoryId?.name} ({product.categoryId?.superCategoryId?.name})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="form-group">
-                <label className="form-label">Product Name</label>
+                <label className="form-label">Product Name <span style={{ color: '#dc3545' }}>*</span></label>
                 <input
                   type="text"
                   className="form-control"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.productName}
+                  onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
                   required
                   placeholder="Enter product name"
                 />
               </div>
               
-              <div className="action-buttons">
-                <button type="submit" className="btn btn-primary">
-                  {editingProduct ? 'Update Product' : 'Add Product'}
-                </button>
+
+              <div className="form-group">
+                <label className="form-label">Origin</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.origin}
+                  onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+                  placeholder="Enter origin"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Super Category <span style={{ color: '#dc3545' }}>*</span></label>
+                <select
+                  className="form-control"
+                  value={formData.superCategoryId}
+                  onChange={(e) => {
+                    const superCategoryId = e.target.value;
+                    setFormData({ ...formData, superCategoryId, categoryId: '' }); // Reset category when super category changes
+                  }}
+                  required
+                >
+                  <option value="">Select a super category</option>
+                  {superCategories.map(superCategory => (
+                    <option key={superCategory._id} value={superCategory._id}>
+                      {superCategory.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Category <span style={{ color: '#dc3545' }}>*</span></label>
+                <select
+                  className="form-control"
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  required
+                  disabled={!formData.superCategoryId}
+                >
+                  <option value="">Select a category</option>
+                  {categories
+                    .filter(category => category.superCategoryId?._id === formData.superCategoryId)
+                    .map(category => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              
+              </form>
+            </div>
+            <div className="modal-footer">
                 <button 
                   type="button" 
                   className="btn btn-secondary"
                   onClick={() => {
                     setShowModal(false);
                     setEditingProduct(null);
-                    setFormData({ sku: '', name: '' });
+                  setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
+      setSkuSearchResults([]);
+      setShowSkuSuggestions(false);
                   }}
                 >
                   Cancel
                 </button>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={handleSubmit}
+              >
+                {editingProduct ? 'Update Product' : 'Add Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Import Products from Excel</h3>
+              <button 
+                className="btn-close" 
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Select Excel File</label>
+                <input
+                  type="file"
+                  className="form-control"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileSelect}
+                />
+                <small className="form-text text-muted">
+                  Excel file should contain columns: SKU, Product, Category, Super Category, Origin
+                </small>
               </div>
-            </form>
+              
+              {importFile && (
+                <div className="file-info">
+                  <p><strong>Selected file:</strong> {importFile.name}</p>
+                  <p><strong>Size:</strong> {(importFile.size / 1024).toFixed(2)} KB</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                }}
+                disabled={importing}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-success"
+                onClick={handleImport}
+                disabled={!importFile || importing}
+              >
+                {importing ? 'Importing...' : 'Import Products'}
+              </button>
+            </div>
           </div>
         </div>
       )}

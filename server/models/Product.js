@@ -9,21 +9,22 @@ const productSchema = new mongoose.Schema({
     uppercase: true,
     maxlength: [20, 'SKU cannot be more than 20 characters']
   },
-  name: {
+  productName: {
     type: String,
     required: [true, 'Product name is required'],
     trim: true,
-    maxlength: [100, 'Product name cannot be more than 100 characters']
+    maxlength: [150, 'Product name cannot be more than 100 characters']
   },
-  description: {
+
+  origin: {
     type: String,
     trim: true,
-    maxlength: [500, 'Description cannot be more than 500 characters']
+    maxlength: [50, 'Origin cannot be more than 50 characters']
   },
-  category: {
-    type: String,
-    trim: true,
-    maxlength: [50, 'Category cannot be more than 50 characters']
+  categoryId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Category', 
+    required: [true, 'Category is required']
   },
   isActive: {
     type: Boolean,
@@ -40,7 +41,8 @@ const productSchema = new mongoose.Schema({
 
 // Index for faster queries
 productSchema.index({ sku: 1 });
-productSchema.index({ name: 'text' });
+productSchema.index({ productName: 'text' });
+productSchema.index({ categoryId: 1 });
 
 module.exports = mongoose.model('Product', productSchema);
 

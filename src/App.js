@@ -23,10 +23,7 @@ function AppContent() {
   // Auto-hide sidebar when not pinned (desktop only)
   useEffect(() => {
     if (!sidebarPinned && window.innerWidth > 768) {
-      const timer = setTimeout(() => {
-        setSidebarOpen(false);
-      }, 3000); // Auto-hide after 3 seconds
-
+      const timer = setTimeout(() => setSidebarOpen(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [sidebarPinned, sidebarOpen]);
@@ -36,12 +33,11 @@ function AppContent() {
     if (!sidebarPinned && window.innerWidth > 768) {
       const handleMouseEnter = () => setSidebarOpen(true);
       const handleMouseLeave = () => setSidebarOpen(false);
-
       const sidebar = document.querySelector('.sidebar');
+
       if (sidebar) {
         sidebar.addEventListener('mouseenter', handleMouseEnter);
         sidebar.addEventListener('mouseleave', handleMouseLeave);
-
         return () => {
           sidebar.removeEventListener('mouseenter', handleMouseEnter);
           sidebar.removeEventListener('mouseleave', handleMouseLeave);
@@ -56,10 +52,8 @@ function AppContent() {
       try {
         const token = api.getAuthToken();
         if (token) {
-          // Try to get current user profile to validate token
           const response = await api.getCurrentUser();
           if (response.success) {
-            // Token is valid, user is authenticated
             setUser(response.data.user);
           } else {
             api.removeAuthToken();
@@ -81,32 +75,7 @@ function AppContent() {
   // Load shipments and products when user is authenticated
   useEffect(() => {
     const loadData = async () => {
-      if (user) {
-        try {
-          // Load shipments and products in parallel
-          const [shipmentsResponse, productsResponse] = await Promise.all([
-            api.getShipments(),
-            api.getProducts()
-          ]);
-
-          if (shipmentsResponse.success) {
-            setShipments(shipmentsResponse.data.shipments);
-          }
-          if (productsResponse.success) {
-            setProducts(productsResponse.data.products);
-          }
-        } catch (error) {
-          console.error('Error loading data:', error);
-        }
-      }
-    };
-
-    loadData();
-  }, [user]);
-
-  /*// Function to refresh data
-  const refreshData = async () => {
-    if (user) {
+      if (!user) return;
       try {
         const [shipmentsResponse, productsResponse] = await Promise.all([
           api.getShipments(),
@@ -120,12 +89,30 @@ function AppContent() {
           setProducts(productsResponse.data.products);
         }
       } catch (error) {
-        console.error('Error refreshing data:', error);
+        console.error('Error loading data:', error);
       }
-    }
-  };*/
+    };
 
-  // Helper function to show operation success messages
+    loadData();
+  }, [user]);
+
+  // Function to refresh data (currently unused)
+  // const refreshData = async () => {
+  //   if (user) {
+  //     try {
+  //       const [shipmentsResponse, productsResponse] = await Promise.all([
+  //         api.getShipments(),
+  //         api.getProducts()
+  //       ]);
+  //       if (shipmentsResponse.success) setShipments(shipmentsResponse.data.shipments);
+  //       if (productsResponse.success) setProducts(productsResponse.data.products);
+  //     } catch (error) {
+  //       console.error('Error refreshing data:', error);
+  //     }
+  //   }
+  // };
+
+  // Helper: show operation success messages
   const showSuccess = (message) => {
     setShowOperationSuccess(message);
     setTimeout(() => setShowOperationSuccess(''), 3000);
@@ -133,11 +120,8 @@ function AppContent() {
 
   const handleAuthSuccess = (userData) => {
     setUser(userData);
-    // Show success message
     setShowSuccessMessage(true);
-    // Navigate to shipments page after successful authentication
     navigate('/shipments');
-    // Hide success message after 3 seconds
     setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
@@ -146,7 +130,6 @@ function AppContent() {
     setUser(null);
     setProducts([]);
     setShipments([]);
-    // Navigate back to login page after logout
     navigate('/');
   };
 
@@ -168,7 +151,7 @@ function AppContent() {
     try {
       const response = await api.updateShipment(updatedShipment.id, updatedShipment);
       if (response.success) {
-        setShipments(prev => prev.map(s => s.id === updatedShipment.id ? response.data.shipment : s));
+        setShipments(prev => prev.map(s => (s.id === updatedShipment.id ? response.data.shipment : s)));
         showSuccess('Shipment updated successfully!');
       } else {
         throw new Error(response.message);
@@ -210,7 +193,7 @@ function AppContent() {
     try {
       const response = await api.updateProduct(updatedProduct.id, updatedProduct);
       if (response.success) {
-        setProducts(prev => prev.map(p => p.id === updatedProduct.id ? response.data.product : p));
+        setProducts(prev => prev.map(p => (p.id === updatedProduct.id ? response.data.product : p)));
         showSuccess('Product updated successfully!');
       } else {
         throw new Error(response.message);
@@ -234,318 +217,313 @@ function AppContent() {
     }
   };
 
-        return (
+  return (
     <div className="App">
-      {/* Sliding Sidebar */}
-      <div 
-        className={`sidebar ${sidebarOpen ? 'open' : 'closed'} ${sidebarPinned ? 'pinned' : ''}`}
+      {user && (
+        <>
+          {/* Sliding Sidebar */}
+          <div
+            className={`sidebar ${sidebarOpen ? 'open' : 'closed'} ${sidebarPinned ? 'pinned' : ''}`}
+            style={{
+              position: 'fixed',
+              left: sidebarOpen ? '0' : '-280px',
+              top: 0,
+              width: '280px',
+              height: '100vh',
+              background: 'white',
+              boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+              transition: 'left 0.3s ease',
+              zIndex: 1000,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Sidebar Header */}
+            <div
+              style={{
+                padding: '20px',
+                borderBottom: '2px solid #e9ecef',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>🚢 Shipments Manager</h1>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setSidebarPinned(!sidebarPinned)}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      border: 'none',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                    title={sidebarPinned ? 'Unpin Sidebar' : 'Pin Sidebar'}
+                  >
+                    {sidebarPinned ? '📌' : '📍'}
+                  </button>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      border: 'none',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              {user && (
+                <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
+                  Welcome, {user.name}!
+                </div>
+              )}
+            </div>
+
+            {/* Navigation Menu */}
+            <div style={{ padding: '20px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <Link
+                  to="/shipments"
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#0056b3')}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#007bff')}
+                >
+                  📦 Shipments
+                </Link>
+
+                <Link
+                  to="/products"
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#1e7e34')}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#28a745')}
+                >
+                  🏷️ Products
+                </Link>
+
+                <Link
+                  to="/create-shipment"
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: '#ffc107',
+                    color: '#212529',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#e0a800')}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#ffc107')}
+                >
+                  ➕ Create Shipment
+                </Link>
+              </div>
+
+              {/* Logout Button */}
+              {user && (
+                <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = '#5a6268')}
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = '#6c757d')}
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar Toggle Button */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              style={{
+                position: 'fixed',
+                left: '10px',
+                top: '10px',
+                zIndex: 999,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+            >
+              ☰
+            </button>
+          )}
+
+          {/* Hover area for sidebar (desktop only) */}
+          {!sidebarOpen && !sidebarPinned && window.innerWidth > 768 && (
+            <div
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                width: '10px',
+                height: '100vh',
+                zIndex: 998,
+                cursor: 'pointer'
+              }}
+              onMouseEnter={() => setSidebarOpen(true)}
+            />
+          )}
+
+          {/* Overlay for mobile */}
+          {sidebarOpen && (
+            <div
+              onClick={() => !sidebarPinned && setSidebarOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                zIndex: 999,
+                display: window.innerWidth <= 768 ? 'block' : 'none'
+              }}
+            />
+          )}
+        </>
+      )}
+
+      <main
+        className="main-content"
         style={{
-          position: 'fixed',
-          left: sidebarOpen ? '0' : '-280px',
-          top: 0,
-          width: '280px',
-          height: '100vh',
-          backgroundColor: 'white',
-          boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
-          transition: 'left 0.3s ease',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column'
+          marginLeft: user && sidebarOpen ? '280px' : '0',
+          transition: 'margin-left 0.3s ease',
+          padding: '20px'
         }}
       >
-        {/* Sidebar Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '2px solid #e9ecef',
-          backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600' }}>🚢 Shipments Manager</h1>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setSidebarPinned(!sidebarPinned)}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-                title={sidebarPinned ? 'Unpin Sidebar' : 'Pin Sidebar'}
-              >
-                {sidebarPinned ? '📌' : '📍'}
-              </button>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          {user && (
-            <div style={{ marginTop: '10px', fontSize: '0.9rem', opacity: 0.9 }}>
-              Welcome, {user.name}!
-            </div>
-          )}
-        </div>
-
-        {/* Navigation Menu */}
-        <div style={{ padding: '20px', flex: 1 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Link
-              to="/shipments"
-              style={{
-                padding: '12px 16px',
-                backgroundColor: '#007bff',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
-            >
-              📦 Shipments
-            </Link>
-            
-            <Link
-              to="/products"
-              style={{
-                padding: '12px 16px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1e7e34'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
-            >
-              🏷️ Products
-            </Link>
-            
-            <Link
-              to="/create-shipment"
-              style={{
-                padding: '12px 16px',
-                backgroundColor: '#ffc107',
-                color: '#212529',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#e0a800'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffc107'}
-            >
-              ➕ Create Shipment
-            </Link>
-          </div>
-
-          {/* Logout Button */}
-          {user && (
-            <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-              <button
-                onClick={handleLogout}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#5a6268'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#6c757d'}
-              >
-                🚪 Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sidebar Toggle Button */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          style={{
-            position: 'fixed',
-            left: '10px',
-            top: '10px',
-            zIndex: 999,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-          }}
-        >
-          ☰
-        </button>
-      )}
-
-      {/* Hover area for sidebar (desktop only) */}
-      {!sidebarOpen && !sidebarPinned && window.innerWidth > 768 && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            width: '10px',
-            height: '100vh',
-            zIndex: 998,
-            cursor: 'pointer'
-          }}
-          onMouseEnter={() => setSidebarOpen(true)}
-        />
-      )}
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          onClick={() => !sidebarPinned && setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 999,
-            display: window.innerWidth <= 768 ? 'block' : 'none'
-          }}
-        />
-      )}
-
-              <main className="main-content" style={{
-                marginLeft: sidebarOpen ? '280px' : '0',
-                transition: 'margin-left 0.3s ease',
-                padding: '20px'
-              }}>
-          {loading ? (
-            <div className="loading">Loading...</div>
-          ) : !user ? (
-            <Auth onAuthSuccess={handleAuthSuccess} />
-          ) : (
-            <>
-
-              {showSuccessMessage && (
-                <div className="success-message">
-                  <div className="success-content">
-                    <span className="success-icon">✅</span>
-                    <span>Successfully logged in! Welcome to Shipments Manager.</span>
-                  </div>
+        {loading ? (
+          <div className="loading">Loading...</div>
+        ) : !user ? (
+          <Auth onAuthSuccess={handleAuthSuccess} />
+        ) : (
+          <>
+            {showSuccessMessage && (
+              <div className="success-message">
+                <div className="success-content">
+                  <span className="success-icon">✅</span>
+                  <span>Successfully logged in! Welcome to Shipments Manager.</span>
                 </div>
-              )}
-              
-              {showOperationSuccess && (
-                <div className="success-message">
-                  <div className="success-content">
-                    <span className="success-icon">✅</span>
-                    <span>{showOperationSuccess}</span>
-                  </div>
+              </div>
+            )}
+
+            {showOperationSuccess && (
+              <div className="success-message">
+                <div className="success-content">
+                  <span className="success-icon">✅</span>
+                  <span>{showOperationSuccess}</span>
                 </div>
-              )}
-              
+              </div>
+            )}
 
             <Routes>
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
-                  <Shipments 
-                    shipments={shipments} 
+                  <Shipments
+                    shipments={shipments}
                     products={products}
                     onUpdate={updateShipment}
                     onDelete={deleteShipment}
                   />
-                } 
+                }
               />
-              <Route 
-                path="/shipments" 
+              <Route
+                path="/shipments"
                 element={
-                  <Shipments 
-                    shipments={shipments} 
+                  <Shipments
+                    shipments={shipments}
                     products={products}
                     onUpdate={updateShipment}
                     onDelete={deleteShipment}
                   />
-                } 
+                }
               />
-              <Route 
-                path="/shipments/:id" 
+              <Route
+                path="/shipments/:id"
                 element={
-                  <ShipmentDetail 
-                    shipments={shipments} 
+                  <ShipmentDetail
+                    shipments={shipments}
                     products={products}
                     onUpdate={updateShipment}
                     onDelete={deleteShipment}
                   />
-                } 
+                }
               />
-              <Route 
-                path="/shipments/:id/edit" 
-                element={
-                  <CreateShipment 
-                    products={products}
-                    onAdd={updateShipment}
-                    isEditing={true}
-                  />
-                } 
+              <Route
+                path="/shipments/:id/edit"
+                element={<CreateShipment products={products} onAdd={updateShipment} isEditing={true} />}
               />
-              <Route 
-                path="/products" 
+              <Route
+                path="/products"
                 element={
-                  <Products 
+                  <Products
                     onAdd={addProduct}
                     onUpdate={updateProduct}
                     onDelete={deleteProduct}
                     user={user}
                   />
-                } 
+                }
               />
-              <Route 
+              <Route
                 path="/create-shipment"
-                element={
-                  <CreateShipment 
-                    products={products}
-                    onAdd={addShipment}
-                  />
-                } 
+                element={<CreateShipment products={products} onAdd={addShipment} />}
               />
             </Routes>
           </>
