@@ -1173,20 +1173,22 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
 
       {/* Edit Shipment Modal */}
       {showEditModal && editingShipment && (
-        <div className="modal">
-          <div className="modal-content" style={{ maxWidth: '900px' }}>
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '900px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Edit Shipment - {editingShipment.invoiceNo}</h3>
-              <button className="close" onClick={() => setShowEditModal(false)}>&times;</button>
+              <button className="btn-close" onClick={() => setShowEditModal(false)}>&times;</button>
             </div>
 
-            <EditShipmentForm
-              key={editingShipment.id}
-              shipment={editingShipment}
-              products={products}
-              onSave={handleSaveEdit}
-              onCancel={() => setShowEditModal(false)}
-            />
+            <div className="modal-body">
+              <EditShipmentForm
+                key={editingShipment.id}
+                shipment={editingShipment}
+                products={products}
+                onSave={handleSaveEdit}
+                onCancel={() => setShowEditModal(false)}
+              />
+            </div>
           </div>
         </div>
       )}

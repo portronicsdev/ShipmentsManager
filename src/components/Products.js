@@ -71,12 +71,13 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
   };
 
   const handleDelete = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    if (window.confirm('Are you sure you want to delete this product?\n\nThis will hide the product from the list but keep it in the database for reference.')) {
       try {
         const response = await api.deleteProduct(productId);
         if (response.success) {
-          setProducts(prev => prev.filter(p => p.id !== productId));
+          setProducts(prev => prev.filter(p => (p._id || p.id) !== productId));
           onDelete && onDelete(productId);
+          alert('Product deleted successfully! It has been hidden from the list.');
         }
       } catch (error) {
         console.error('Error deleting product:', error);
@@ -325,7 +326,7 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
                       </button>
                       <button 
                         className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(product.id)}
+                        onClick={() => handleDelete(product._id || product.id)}
                         style={{ 
                           padding: '4px 8px', 
                           fontSize: '0.8rem',

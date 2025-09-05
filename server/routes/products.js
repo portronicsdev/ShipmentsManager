@@ -233,6 +233,14 @@ router.put('/:id', [
 // @access  Private (Admin only)
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
+    // Validate the ID parameter
+    if (!req.params.id || req.params.id === 'undefined') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid product ID provided' 
+      });
+    }
+
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -247,7 +255,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Product deleted successfully (hidden from list)'
     });
   } catch (error) {
     console.error('Delete product error:', error);
