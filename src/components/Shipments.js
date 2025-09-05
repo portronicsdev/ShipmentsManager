@@ -51,6 +51,15 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     }
   }, [boxes, shipment.boxes]);
 
+  const [currentProduct, setCurrentProduct] = useState({
+    sku: '',
+    productName: '',
+    externalSku: '',
+    quantity: 1
+  });
+  const [skuSearchResults, setSkuSearchResults] = useState([]);
+  const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
+
   // Update boxes state when shipment prop changes
   useEffect(() => {
     setBoxes(shipment.boxes || []);
@@ -63,15 +72,6 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [showSkuSuggestions]);
-
-  const [currentProduct, setCurrentProduct] = useState({
-    sku: '',
-    productName: '',
-    externalSku: '',
-    quantity: 1
-  });
-  const [skuSearchResults, setSkuSearchResults] = useState([]);
-  const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
 
   // Modal state for adding/editing boxes
   const [showBoxModal, setShowBoxModal] = useState(false);
