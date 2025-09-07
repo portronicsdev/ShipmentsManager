@@ -6,6 +6,7 @@ import Products from './components/Products';
 import Customers from './components/Customers';
 import CreateShipment from './components/CreateShipment';
 import ShipmentDetail from './components/ShipmentDetail';
+import Reports from './components/Reports';
 import Auth from './components/Auth';
 import api from './utils/api';
 import './App.css';
@@ -297,8 +298,9 @@ function AppContent() {
               style={{
                 padding: '20px',
                 borderBottom: '2px solid #e9ecef',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white'
+                background: 'linear-gradient(135deg, #2c5aa0 0%, #1e3a5f 100%)',
+                color: 'white',
+                boxShadow: '0 2px 4px rgba(44, 90, 160, 0.3)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -349,7 +351,7 @@ function AppContent() {
                   to="/shipments"
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: '#007bff',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: '8px',
@@ -358,10 +360,18 @@ function AppContent() {
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
                   }}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#0056b3')}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#007bff')}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
                 >
                   📦 Shipments
                 </Link>
@@ -370,7 +380,7 @@ function AppContent() {
                   to="/products"
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: '#28a745',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: '8px',
@@ -379,10 +389,18 @@ function AppContent() {
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
                   }}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#1e7e34')}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#28a745')}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
                 >
                   🏷️ Products
                 </Link>
@@ -391,7 +409,7 @@ function AppContent() {
                   to="/customers"
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: '#6f42c1',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: '8px',
@@ -400,20 +418,28 @@ function AppContent() {
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
                   }}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#5a32a3')}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#6f42c1')}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
                 >
                   👥 Customers
                 </Link>
 
                 <Link
-                  to="/create-shipment"
+                  to="/reports"
                   style={{
                     padding: '12px 16px',
-                    backgroundColor: '#ffc107',
-                    color: '#212529',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+                    color: 'white',
                     textDecoration: 'none',
                     borderRadius: '8px',
                     fontSize: '14px',
@@ -421,39 +447,51 @@ function AppContent() {
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
                   }}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#e0a800')}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#ffc107')}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
+                >
+                  📊 Reports
+                </Link>
+
+                <Link
+                  to="/create-shipment"
+                  style={{
+                    padding: '12px 16px',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
                 >
                   ➕ Create Shipment
                 </Link>
               </div>
-
-              {/* Logout Button */}
-              {user && (
-                <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      backgroundColor: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => (e.target.style.backgroundColor = '#5a6268')}
-                    onMouseLeave={(e) => (e.target.style.backgroundColor = '#6c757d')}
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
@@ -520,7 +558,9 @@ function AppContent() {
         style={{
           marginLeft: user && sidebarOpen ? '280px' : '0',
           transition: 'margin-left 0.3s ease',
-          padding: '20px'
+          padding: '20px',
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+          minHeight: '100vh'
         }}
       >
         {loading ? (
@@ -529,6 +569,46 @@ function AppContent() {
           <Auth onAuthSuccess={handleAuthSuccess} />
         ) : (
           <>
+            {/* Minimal Header with Logout */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              marginBottom: '10px',
+              paddingBottom: '5px'
+            }}>
+              <span
+                onClick={handleLogout}
+                style={{
+                  color: '#6c757d',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  transition: 'all 0.3s ease',
+                  textDecoration: 'none',
+                  backgroundColor: 'transparent',
+                  border: '1px solid #dee2e6'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#f8f9fa';
+                  e.target.style.color = '#495057';
+                  e.target.style.borderColor = '#adb5bd';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#6c757d';
+                  e.target.style.borderColor = '#dee2e6';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+                title="Logout"
+              >
+                🚪 Logout
+              </span>
+            </div>
+
             {showSuccessMessage && (
               <div className="success-message">
                 <div className="success-content">
@@ -608,6 +688,10 @@ function AppContent() {
                     user={user}
                   />
                 }
+              />
+              <Route
+                path="/reports"
+                element={<Reports shipments={shipments} />}
               />
               <Route
                 path="/create-shipment"

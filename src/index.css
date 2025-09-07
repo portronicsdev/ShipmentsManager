@@ -35,12 +35,12 @@ code {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #121c88;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #0056b3;
+  background-color: #1d3044;
 }
 
 .btn-secondary {
@@ -52,8 +52,20 @@ code {
   background-color: #545b62;
 }
 
+.btn-outline-primary {
+  border: 1px solid #0e3d6e; /* outline border */
+  color: #007bff;           /* text color */
+  background-color: transparent; 
+}
+
+.btn-outline-primary:hover {
+  background-color: #2469b2;
+  color: #fff;
+}
+
+
 .btn-success {
-  background-color: #28a745;
+  background-color: #048923;
   color: white;
 }
 

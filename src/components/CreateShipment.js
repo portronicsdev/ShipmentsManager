@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useReactToPrint } from 'react-to-print';
 import localDB from '../utils/localStorage';
 import api from '../utils/api';
+import BoxLabel from './BoxLabel';
 
 const CreateShipment = ({ products = [], onAdd }) => {
   const navigate = useNavigate();
@@ -48,6 +50,21 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const [showBoxModal, setShowBoxModal] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [isRemoving, setIsRemoving] = useState(false);
+
+  // Print functionality
+  const boxLabelRefs = useRef({});
+  const [currentPrintBoxId, setCurrentPrintBoxId] = useState(null);
+  
+  const handlePrintBox = useReactToPrint({
+    content: () => boxLabelRefs.current[currentPrintBoxId],
+  });
+  
+  const printBox = (boxId) => {
+    setCurrentPrintBoxId(boxId);
+    setTimeout(() => {
+      handlePrintBox();
+    }, 100);
+  };
 
   // Load customers and auto-populate date, start time and load saved boxes
   useEffect(() => {
@@ -500,7 +517,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
 
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '5px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Main Content */}
       <div>
       {errors.message && (
@@ -890,49 +907,128 @@ const CreateShipment = ({ products = [], onAdd }) => {
                         </div>
                       </td>
                       <td style={{ padding: '10px' }}>
-                        <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '6px', 
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {/* Edit Icon */}
                           <button
                             type="button"
+                            title="Edit Box"
                             style={{
-                              padding: '4px 8px',
+                              padding: '6px',
                               backgroundColor: '#007bff',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '3px',
-                              fontSize: '10px',
-                              cursor: 'pointer'
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#0056b3';
+                              e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = '#007bff';
+                              e.target.style.transform = 'scale(1)';
                             }}
                             onClick={() => editBox(box)}
                           >
-                            Edit
+                            ✏️
                           </button>
+                          
+                          {/* Copy Icon */}
                           <button
                             type="button"
+                            title="Copy Box"
                             style={{
-                              padding: '4px 8px',
+                              padding: '6px',
                               backgroundColor: '#17a2b8',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '3px',
-                              fontSize: '10px',
-                              cursor: 'pointer'
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#138496';
+                              e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = '#17a2b8';
+                              e.target.style.transform = 'scale(1)';
                             }}
                             onClick={() => copyBox(box)}
                           >
-                            Copy
+                            📋
                           </button>
+                          
+                          {/* Print Icon */}
                           <button
                             type="button"
+                            title="Print Box Label"
                             style={{
-                              padding: '4px 8px',
+                              padding: '6px',
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#c82333';
+                              e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = '#dc3545';
+                              e.target.style.transform = 'scale(1)';
+                            }}
+                            onClick={() => printBox(box.id)}
+                          >
+                            🖨️
+                          </button>
+                          
+                          {/* Remove Icon */}
+                          <button
+                            type="button"
+                            title="Remove Box"
+                            style={{
+                              padding: '6px',
                               backgroundColor: isRemoving ? '#6c757d' : '#dc3545',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '3px',
-                              fontSize: '10px',
-                              cursor: isRemoving ? 'not-allowed' : 'pointer'
+                              borderRadius: '4px',
+                              cursor: isRemoving ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
                             }}
                             disabled={isRemoving}
+                            onMouseEnter={(e) => {
+                              if (!isRemoving) {
+                                e.target.style.backgroundColor = '#c82333';
+                                e.target.style.transform = 'scale(1.1)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isRemoving) {
+                                e.target.style.backgroundColor = '#dc3545';
+                                e.target.style.transform = 'scale(1)';
+                              }
+                            }}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -941,7 +1037,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                               }
                             }}
                           >
-                            {isRemoving ? 'Removing...' : 'Remove'}
+                            {isRemoving ? '⏳' : '🗑️'}
                           </button>
                         </div>
                       </td>
@@ -969,7 +1065,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
               type="button"
                 style={{
                 padding: '12px 20px',
-                backgroundColor: '#28a745',
+                backgroundColor: '#048923',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -980,14 +1076,14 @@ const CreateShipment = ({ products = [], onAdd }) => {
               }}
               onClick={() => openAddBoxModal(false)}
             >
-              ➕ Add Box
+              Add Box
             </button>
             
             <button
               type="button"
                 style={{
                 padding: '12px 20px',
-                backgroundColor: '#dc3545',
+                backgroundColor: '#9f1321ff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -1005,7 +1101,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
               type="button"
             style={{
                 padding: '12px 20px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#121c88',
               color: 'white',
               border: 'none',
                 borderRadius: '8px',
@@ -1023,7 +1119,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
             type="button"
             style={{
                 padding: '12px 20px',
-              backgroundColor: '#6c757d',
+              backgroundColor: '#7a8793ff',
               color: 'white',
               border: 'none',
                 borderRadius: '8px',
@@ -1430,6 +1526,26 @@ const CreateShipment = ({ products = [], onAdd }) => {
           </div>
         </div>
       )}
+      
+      {/* Hidden Print Components */}
+      <div style={{ display: 'none' }}>
+        {/* Box Labels for Printing */}
+        {boxes.map(box => (
+          <BoxLabel 
+            key={box.id} 
+            ref={el => boxLabelRefs.current[box.id] = el}
+            box={box} 
+            shipment={{
+              invoiceNo: formData.invoiceNo,
+              partyName: formData.partyName,
+              date: formData.date,
+              startTime: formData.startTime,
+              endTime: formData.endTime,
+              customer: formData.customer
+            }} 
+          />
+        ))}
+      </div>
       </div>
     </div>
   );
