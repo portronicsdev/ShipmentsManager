@@ -164,6 +164,116 @@
   word-wrap: break-word;
 }
 
+
+/* Customer Modal Form Grid - Ultra Compact */
+.customers-page .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.customers-page .form-group-full {
+  grid-column: 1 / -1;
+}
+
+.customers-page .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.customers-page .form-group label {
+  margin-bottom: 0.1rem;
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.75rem;
+}
+
+.customers-page .form-group input {
+  padding: 0.3rem;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.customers-page .form-group input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
+}
+
+/* Ultra compact modal body for customers */
+.customers-page .modal-body {
+  padding: 8px !important;
+}
+
+/* Compact modal header for customers */
+.customers-page .modal-header {
+  padding: 8px 12px 4px 12px !important;
+}
+
+.customers-page .modal-title {
+  font-size: 0.9rem !important;
+  margin: 0 !important;
+}
+
+/* Compact modal footer for customers */
+.customers-page .modal-footer {
+  padding: 4px 12px 8px 12px !important;
+}
+
+/* Count badge styles */
+.count-badge {
+  background-color: #6c757d;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Override default modal styles for customers */
+.customers-page .modal {
+  max-height: 60vh !important;
+  overflow-y: auto !important;
+  height: auto !important;
+}
+
+
+/* Import modal specific styles */
+.customers-page .import-instructions {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.customers-page .import-instructions h4 {
+  margin: 0 0 0.5rem 0;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.customers-page .import-instructions ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.customers-page .import-instructions li {
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
 .file-info p {
   margin: 5px 0;
   font-size: 0.9rem;

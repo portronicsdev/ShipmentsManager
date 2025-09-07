@@ -87,6 +87,11 @@ const shipmentSchema = new mongoose.Schema({
     trim: true,
     uppercase: true
   },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
+    required: [true, 'Customer is required']
+  },
   partyName: {
     type: String,
     required: [true, 'Party name is required'],
@@ -150,6 +155,7 @@ const shipmentSchema = new mongoose.Schema({
 
 // Indexes for faster queries
 shipmentSchema.index({ invoiceNo: 1 });
+shipmentSchema.index({ customer: 1 });
 shipmentSchema.index({ partyName: 1 });
 shipmentSchema.index({ date: -1 });
 shipmentSchema.index({ status: 1 });

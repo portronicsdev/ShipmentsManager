@@ -66,6 +66,7 @@ router.get('/', protect, async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
     const shipments = await Shipment.find(query)
+      .populate('customer', 'code name')
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
       .sort({ createdAt: -1 })
@@ -78,6 +79,7 @@ router.get('/', protect, async (req, res) => {
       success: true,
       data: {
         shipments,
+        totalCount: total,
         pagination: {
           current: parseInt(page),
           total: Math.ceil(total / parseInt(limit)),
@@ -100,6 +102,7 @@ router.get('/', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const shipment = await Shipment.findById(req.params.id)
+      .populate('customer', 'code name')
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email');
 
@@ -130,6 +133,9 @@ router.post('/', [
     .trim()
     .notEmpty()
     .withMessage('Invoice number is required'),
+  body('customer')
+    .notEmpty()
+    .withMessage('Customer is required'),
   body('partyName')
     .trim()
     .notEmpty()
@@ -250,7 +256,7 @@ router.post('/', [
         
         // Update product info with required fields for MongoDB schema
         product.product = existingProduct._id;
-        product.productName = existingProduct.name;
+        product.productName = existingProduct.productName;
         product.sku = existingProduct.sku;
       }
     }
@@ -293,6 +299,7 @@ router.post('/', [
     // Create shipment (weights are calculated at runtime)
     const shipment = await Shipment.create({
       invoiceNo: invoiceNo.toUpperCase(),
+      customer: req.body.customer,
       partyName,
       requiredQty: parseInt(requiredQty),
       startTime,
@@ -303,6 +310,7 @@ router.post('/', [
       createdBy: req.user.id
     });
 
+    await shipment.populate('customer', 'code name');
     await shipment.populate('createdBy', 'name email');
 
     res.status(201).json({
@@ -328,6 +336,10 @@ router.put('/:id', [
     .trim()
     .notEmpty()
     .withMessage('Invoice number cannot be empty'),
+  body('customer')
+    .optional()
+    .notEmpty()
+    .withMessage('Customer cannot be empty'),
   body('partyName')
     .optional()
     .trim()
@@ -390,6 +402,7 @@ router.put('/:id', [
       updateData,
       { new: true, runValidators: true }
     )
+    .populate('customer', 'code name')
     .populate('createdBy', 'name email')
     .populate('updatedBy', 'name email');
 

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react
 
 import Shipments from './components/Shipments';
 import Products from './components/Products';
+import Customers from './components/Customers';
 import CreateShipment from './components/CreateShipment';
 import ShipmentDetail from './components/ShipmentDetail';
 import Auth from './components/Auth';
@@ -11,7 +12,9 @@ import './App.css';
 
 function AppContent() {
   const [shipments, setShipments] = useState([]);
+  const [totalShipments, setTotalShipments] = useState(0);
   const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -84,6 +87,7 @@ function AppContent() {
 
         if (shipmentsResponse.success) {
           setShipments(shipmentsResponse.data.shipments);
+          setTotalShipments(shipmentsResponse.data.totalCount || shipmentsResponse.data.shipments.length);
         }
         if (productsResponse.success) {
           setProducts(productsResponse.data.products);
@@ -217,6 +221,56 @@ function AppContent() {
     }
   };
 
+  const addCustomer = async (newCustomer) => {
+    try {
+      const response = await api.createCustomer(newCustomer);
+      if (response.success) {
+        setCustomers(prev => [...prev, response.data.customer]);
+        showSuccess('Customer created successfully!');
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const updateCustomer = async (updatedCustomer) => {
+    try {
+      // Extract the correct ID - handle both _id and id
+      const customerId = updatedCustomer._id || updatedCustomer.id;
+      const response = await api.updateCustomer(customerId, updatedCustomer);
+      if (response.success) {
+        setCustomers(prev => prev.map(c => {
+          const cId = c._id || c.id;
+          return cId === customerId ? response.data.customer : c;
+        }));
+        showSuccess('Customer updated successfully!');
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const deleteCustomer = async (customerId) => {
+    try {
+      const response = await api.deleteCustomer(customerId);
+      if (response.success) {
+        setCustomers(prev => prev.filter(c => {
+          const cId = c._id || c.id;
+          return cId !== customerId;
+        }));
+        showSuccess('Customer deleted successfully!');
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
     <div className="App">
       {user && (
@@ -331,6 +385,27 @@ function AppContent() {
                   onMouseLeave={(e) => (e.target.style.backgroundColor = '#28a745')}
                 >
                   🏷️ Products
+                </Link>
+
+                <Link
+                  to="/customers"
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: '#6f42c1',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#5a32a3')}
+                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#6f42c1')}
+                >
+                  👥 Customers
                 </Link>
 
                 <Link
@@ -478,6 +553,7 @@ function AppContent() {
                 element={
                   <Shipments
                     shipments={shipments}
+                    totalShipments={totalShipments}
                     products={products}
                     onUpdate={updateShipment}
                     onDelete={deleteShipment}
@@ -489,6 +565,7 @@ function AppContent() {
                 element={
                   <Shipments
                     shipments={shipments}
+                    totalShipments={totalShipments}
                     products={products}
                     onUpdate={updateShipment}
                     onDelete={deleteShipment}
@@ -517,6 +594,17 @@ function AppContent() {
                     onAdd={addProduct}
                     onUpdate={updateProduct}
                     onDelete={deleteProduct}
+                    user={user}
+                  />
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <Customers
+                    onAdd={addCustomer}
+                    onUpdate={updateCustomer}
+                    onDelete={deleteCustomer}
                     user={user}
                   />
                 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import api from '../utils/api';
 
 
 /** =============================
@@ -10,6 +11,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
     invoiceNo: shipment.invoiceNo,
+    customer: shipment.customer || '',
     partyName: shipment.partyName,
     requiredQty: shipment.requiredQty || '',
     startTime: shipment.startTime || '',
@@ -18,11 +20,63 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 
 
 
+  // Customer dropdown states
+  const [customers, setCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  // Load customers
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        // Load all customers without pagination
+        const response = await api.getCustomers();
+        if (response.success) {
+          setCustomers(response.data.customers);
+          // If shipment has a customer, find and set it
+          if (shipment.customer) {
+            const customer = response.data.customers.find(c => 
+              (c._id || c.id) === shipment.customer
+            );
+            if (customer) {
+              setSelectedCustomer(customer);
+              setCustomerSearchTerm(`${customer.code} - ${customer.name}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading customers:', error);
+      }
+    };
+
+    loadCustomers();
+  }, [shipment.customer]);
+
+  // Filter customers based on search term
+  useEffect(() => {
+    if (customerSearchTerm.trim() === '') {
+      setFilteredCustomers([]);
+      setShowCustomerSuggestions(false);
+      return;
+    }
+
+    const filtered = customers.filter(customer => 
+      customer.code.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+    );
+    
+    setFilteredCustomers(filtered);
+    setShowCustomerSuggestions(filtered.length > 0);
+  }, [customerSearchTerm, customers]);
+
   // Update formData when shipment prop changes
   useEffect(() => {
     setFormData({
       date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
       invoiceNo: shipment.invoiceNo || '',
+      customer: shipment.customer || '',
       partyName: shipment.partyName || '',
       requiredQty: shipment.requiredQty || shipment.quantityToBePacked || '',
       startTime: shipment.startTime || '',
@@ -72,6 +126,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [showSkuSuggestions]);
+
 
   // Modal state for adding/editing boxes
   const [showBoxModal, setShowBoxModal] = useState(false);
@@ -129,9 +184,10 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     setCurrentProduct(prev => ({ ...prev, sku: skuValue }));
 
     if (skuValue.length >= 2) {
-      // Search for products with matching SKU
+      // Search for products with matching SKU or productName
       const matchingProducts = products.filter(product => 
-        product.sku.toLowerCase().includes(skuValue.toLowerCase())
+        product.sku.toLowerCase().includes(skuValue.toLowerCase()) ||
+        product.productName.toLowerCase().includes(skuValue.toLowerCase())
       );
       setSkuSearchResults(matchingProducts);
       setShowSkuSuggestions(matchingProducts.length > 0);
@@ -156,6 +212,28 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     if (!e.target.closest('.sku-suggestions-container')) {
       setShowSkuSuggestions(false);
     }
+    if (!e.target.closest('.customer-suggestions-container')) {
+      setShowCustomerSuggestions(false);
+    }
+  };
+
+  const handleCustomerSearch = (e) => {
+    const value = e.target.value;
+    setCustomerSearchTerm(value);
+    // Clear form data when user types (forces selection from dropdown)
+    setFormData(prev => ({ ...prev, customer: '', partyName: '' }));
+    setSelectedCustomer(null);
+  };
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearchTerm(`${customer.code} - ${customer.name}`);
+    setFormData(prev => ({ 
+      ...prev, 
+      customer: customer._id || customer.id,
+      partyName: customer.name 
+    }));
+    setShowCustomerSuggestions(false);
   };
 
   /** Add product either to modal's newBox (when modal open) or to editingBox (inline edit) */
@@ -332,6 +410,12 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validate that a customer was selected
+    if (!selectedCustomer) {
+      alert('Please select a customer from the dropdown list.');
+      return;
+    }
+    
     // Process boxes to ensure each product has the required 'product' field (Product ObjectId)
     const processedBoxes = boxes.map(box => ({
       ...box,
@@ -358,7 +442,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       boxes: processedBoxes
     };
     
-
+    
     onSave(updatedShipment);
   };
 
@@ -372,7 +456,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         marginBottom: '8px',
         border: '1px solid #dee2e6'
       }}>
-       
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Date</label>
@@ -396,15 +480,61 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Party</label>
+          <div className="customer-suggestions-container" style={{ position: 'relative' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Customer</label>
             <input
               type="text"
-              style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
-              value={formData.partyName}
-              onChange={(e) => setFormData({ ...formData, partyName: e.target.value })}
+              style={{ 
+                width: '100%', 
+                padding: '6px 8px', 
+                border: selectedCustomer ? '2px solid #28a745' : '1px solid #ced4da', 
+                borderRadius: '4px', 
+                fontSize: '13px',
+                backgroundColor: selectedCustomer ? '#f8fff9' : 'white'
+              }}
+              value={customerSearchTerm}
+              onChange={handleCustomerSearch}
               required
+              placeholder="Search customer by code or name..."
+              autoComplete="off"
             />
+            {showCustomerSuggestions && filteredCustomers.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                zIndex: 1000,
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}>
+                {filteredCustomers.map(customer => (
+                  <div
+                    key={customer._id || customer.id}
+                    style={{
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f8f9fa',
+                      fontSize: '14px'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                    onClick={() => handleCustomerSelect(customer)}
+                  >
+                    <div style={{ fontWeight: 'bold', color: '#495057' }}>
+                      {customer.code}
+                    </div>
+                    <div style={{ color: '#6c757d', fontSize: '12px' }}>
+                      {customer.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -604,7 +734,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         </div>
       </div>
 
-     
+
       {/* Inline compact editor (this was the "some bracket" culprit) */}
       {editingBox && (
         <div style={{ background: '#fff', border: '1px solid #dee2e6', borderRadius: 8, padding: 12, marginBottom: 15 }}>
@@ -782,7 +912,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                     style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.sku}
                     onChange={handleSkuChange}
-                    placeholder="Type SKU to search..."
+                    placeholder="Type SKU or product name to search..."
                     autoComplete="off"
                   />
                   {showSkuSuggestions && skuSearchResults.length > 0 && (
@@ -1046,7 +1176,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 /** =============================
  *  Shipments (list + actions)
  *  ============================= */
-const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
+const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -1074,6 +1204,20 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
     };
   };
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && showEditModal) {
+        setShowEditModal(false);
+      }
+    };
+
+    if (showEditModal) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showEditModal]);
 
   const filteredShipments = shipments.filter(shipment => {
     const q = searchTerm.toLowerCase();
@@ -1110,6 +1254,9 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Shipments Management</h2>
+          <div className="count-badge">
+            {searchTerm ? `Showing: ${filteredShipments.length} of ${totalShipments}` : `Total Shipments: ${totalShipments}`}
+          </div>
         </div>
 
         <div className="search-bar">
@@ -1138,25 +1285,25 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
             {filteredShipments.map(shipment => {
               const weights = calculateShipmentWeights(shipment.boxes);
               return (
-                <tr key={shipment.id}>
-                  <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
-                  <td>{shipment.invoiceNo}</td>
-                  <td>{shipment.partyName}</td>
-                  <td>{shipment.boxes.length}</td>
-                  <td>{weights.totalWeight} kg</td>
-                  <td>{weights.chargedWeight} kg</td>
-                  <td>
-                    <button className="btn btn-secondary btn-sm" onClick={() => viewDetails(shipment)}>
-                      Details
-                    </button>
-                    <button className="btn btn-primary btn-sm" onClick={() => handleEdit(shipment)} style={{ marginLeft: '0.5rem' }}>
-                      Edit
-                    </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(shipment.id)} style={{ marginLeft: '0.5rem' }}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+              <tr key={shipment.id}>
+                <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
+                <td>{shipment.invoiceNo}</td>
+                <td>{shipment.partyName}</td>
+                <td>{shipment.boxes.length}</td>
+                <td>{weights.totalWeight} kg</td>
+                <td>{weights.chargedWeight} kg</td>
+                <td>
+                  <button className="btn btn-secondary btn-sm" onClick={() => viewDetails(shipment)}>
+                    Details
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleEdit(shipment)} style={{ marginLeft: '0.5rem' }}>
+                    Edit
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(shipment.id)} style={{ marginLeft: '0.5rem' }}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
               );
             })}
           </tbody>
@@ -1181,13 +1328,13 @@ const Shipments = ({ shipments, products, onUpdate, onDelete }) => {
             </div>
 
             <div className="modal-body">
-              <EditShipmentForm
+            <EditShipmentForm
                 key={editingShipment.id}
-                shipment={editingShipment}
-                products={products}
-                onSave={handleSaveEdit}
-                onCancel={() => setShowEditModal(false)}
-              />
+              shipment={editingShipment}
+              products={products}
+              onSave={handleSaveEdit}
+              onCancel={() => setShowEditModal(false)}
+            />
             </div>
           </div>
         </div>

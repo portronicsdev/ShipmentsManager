@@ -33,20 +33,22 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
         if (response.success) {
           setProducts(prev => prev.map(p => p.id === editingProduct.id ? response.data.product : p));
           onUpdate && onUpdate(response.data.product);
+          alert(response.message || 'Product updated successfully');
+        } else {
+          alert(`Error: ${response.message || 'Failed to update product'}`);
         }
       } else {
         const response = await api.createProduct(formData);
         if (response.success) {
           setProducts(prev => [...prev, response.data.product]);
           onAdd && onAdd(response.data.product);
+          alert(response.message || 'Product created successfully');
+        } else {
+          alert(`Error: ${response.message || 'Failed to create product'}`);
         }
       }
       
-      setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
-      setSkuSearchResults([]);
-      setShowSkuSuggestions(false);
-      setEditingProduct(null);
-      setShowModal(false);
+      resetForm();
     } catch (error) {
       console.error('Error saving product:', error);
       if (error.message.includes('Unauthorized')) {
@@ -77,7 +79,9 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
         if (response.success) {
           setProducts(prev => prev.filter(p => (p._id || p.id) !== productId));
           onDelete && onDelete(productId);
-          alert('Product deleted successfully! It has been hidden from the list.');
+          alert(response.message || 'Product deleted successfully');
+        } else {
+          alert(`Error: ${response.message || 'Failed to delete product'}`);
         }
       } catch (error) {
         console.error('Error deleting product:', error);
@@ -124,6 +128,14 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     if (!e.target.closest('.sku-suggestions-container')) {
       setShowSkuSuggestions(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
+    setSkuSearchResults([]);
+    setShowSkuSuggestions(false);
+    setEditingProduct(null);
+    setShowModal(false);
   };
 
   const handleFileSelect = (e) => {
@@ -177,7 +189,7 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
         setShowImportModal(false);
         setImportFile(null);
       } else {
-        alert('Import failed: ' + response.message);
+        alert(`Error: ${response.message || 'Failed to import products'}`);
       }
     } catch (error) {
       console.error('Error importing products:', error);
@@ -236,6 +248,25 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     }
   }, [showSkuSuggestions]);
 
+  // Handle escape key to close modals
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        if (showModal) {
+          resetForm();
+        } else if (showImportModal) {
+          setShowImportModal(false);
+          setImportFile(null);
+        }
+      }
+    };
+
+    if (showModal || showImportModal) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showModal, showImportModal]);
+
   
 
   const filteredProducts = (products || []).filter(product => {
@@ -253,6 +284,9 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Products Management</h2>
+          <div className="count-badge">
+            {searchTerm ? `Showing: ${filteredProducts.length} of ${products.length}` : `Total Products: ${products.length}`}
+          </div>
         </div>
 
         <div className="action-buttons">
@@ -362,13 +396,7 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
               </h3>
               <button 
                 className="btn-close" 
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingProduct(null);
-                  setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
-      setSkuSearchResults([]);
-      setShowSkuSuggestions(false);
-                }}
+                onClick={resetForm}
               >
                 ×
               </button>
@@ -497,13 +525,7 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
                 <button 
                   type="button" 
                   className="btn btn-secondary"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingProduct(null);
-                  setFormData({ sku: '', productName: '', origin: '', categoryId: '', superCategoryId: '' });
-      setSkuSearchResults([]);
-      setShowSkuSuggestions(false);
-                  }}
+                  onClick={resetForm}
                 >
                   Cancel
                 </button>

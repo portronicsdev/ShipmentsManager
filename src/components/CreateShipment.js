@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import localDB from '../utils/localStorage';
+import api from '../utils/api';
 
 const CreateShipment = ({ products = [], onAdd }) => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
     date: '',
     invoiceNo: '',
     quantityToBePacked: '',
+    customer: '',
     partyName: '',
     startTime: '',
     endTime: ''
@@ -33,6 +35,13 @@ const CreateShipment = ({ products = [], onAdd }) => {
   });
   const [skuSearchResults, setSkuSearchResults] = useState([]);
   const [showSkuSuggestions, setShowSkuSuggestions] = useState(false);
+  
+  // Customer dropdown states
+  const [customers, setCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const [editingBox, setEditingBox] = useState(null);
   const [errors, setErrors] = useState({});
@@ -40,8 +49,24 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Auto-populate date, start time and load saved boxes
+  // Load customers and auto-populate date, start time and load saved boxes
   useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        // Load all customers without pagination
+        const response = await api.getCustomers();
+        console.log('Customer API response:', response);
+        console.log('Customers loaded:', response.data?.customers?.length);
+        if (response.success) {
+          setCustomers(response.data.customers);
+        }
+      } catch (error) {
+        console.error('Error loading customers:', error);
+      }
+    };
+
+    loadCustomers();
+
     const today = new Date().toISOString().split('T')[0];
     const now = new Date();
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -57,7 +82,25 @@ const CreateShipment = ({ products = [], onAdd }) => {
       setBoxes(savedBoxes);
       setCurrentBox(prev => ({ ...prev, boxNo: (savedBoxes.length + 1).toString() }));
     }
-  }, []); // Empty dependency array - only run once on mount
+
+  }, [products]); // Run when products change
+
+  // Filter customers based on search term
+  useEffect(() => {
+    if (customerSearchTerm.trim() === '') {
+      setFilteredCustomers([]);
+      setShowCustomerSuggestions(false);
+      return;
+    }
+
+    const filtered = customers.filter(customer => 
+      customer.code.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+    );
+    
+    setFilteredCustomers(filtered);
+    setShowCustomerSuggestions(filtered.length > 0);
+  }, [customerSearchTerm, customers]);
 
   // Handle clicking outside SKU suggestions
   useEffect(() => {
@@ -102,9 +145,10 @@ const CreateShipment = ({ products = [], onAdd }) => {
     setCurrentProduct(prev => ({ ...prev, sku: skuValue }));
 
     if (skuValue.length >= 2) {
-      // Search for products with matching SKU
+      // Search for products with matching SKU or productName
       const matchingProducts = products.filter(product => 
-        product.sku.toLowerCase().includes(skuValue.toLowerCase())
+        product.sku.toLowerCase().includes(skuValue.toLowerCase()) ||
+        product.productName.toLowerCase().includes(skuValue.toLowerCase())
       );
       setSkuSearchResults(matchingProducts);
       setShowSkuSuggestions(matchingProducts.length > 0);
@@ -129,6 +173,28 @@ const CreateShipment = ({ products = [], onAdd }) => {
     if (!e.target.closest('.sku-suggestions-container')) {
       setShowSkuSuggestions(false);
     }
+    if (!e.target.closest('.customer-suggestions-container')) {
+      setShowCustomerSuggestions(false);
+    }
+  };
+
+  const handleCustomerSearch = (e) => {
+    const value = e.target.value;
+    setCustomerSearchTerm(value);
+    // Clear form data when user types (forces selection from dropdown)
+    setFormData(prev => ({ ...prev, customer: '', partyName: '' }));
+    setSelectedCustomer(null);
+  };
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearchTerm(`${customer.code} - ${customer.name}`);
+    setFormData(prev => ({ 
+      ...prev, 
+      customer: customer._id || customer.id,
+      partyName: customer.name 
+    }));
+    setShowCustomerSuggestions(false);
   };
 
   const addProductToBoxImpl = (targetBoxSetter, targetBox) => {
@@ -153,6 +219,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
       quantity: parseInt(currentProduct.quantity) || 1,
       product: product._id || product.id // Add the required 'product' field (Product ObjectId)
     };
+
 
     targetBoxSetter(prev => ({
       ...prev,
@@ -201,8 +268,8 @@ const CreateShipment = ({ products = [], onAdd }) => {
     if (!currentBox.length || !currentBox.height || !currentBox.width || !currentBox.weight) {
       if (!currentBox.isShortBox) {
           // For Short Boxes, skip dimension and weight validation  
-          setErrors({ message: 'Please fill in all box dimensions and weight.' });
-          return;
+      setErrors({ message: 'Please fill in all box dimensions and weight.' });
+      return;
       }
     }
 
@@ -295,18 +362,18 @@ const CreateShipment = ({ products = [], onAdd }) => {
     setBoxes(prevBoxes => {
       const updatedBoxes = prevBoxes.filter(box => box.id !== boxId);
       
-      const renumberedBoxes = updatedBoxes.map((box, index) => ({
-        ...box,
-        boxNo: (index + 1).toString()
-      }));
-      localDB.set('tempBoxes', renumberedBoxes);
+    const renumberedBoxes = updatedBoxes.map((box, index) => ({
+      ...box,
+      boxNo: (index + 1).toString()
+    }));
+    localDB.set('tempBoxes', renumberedBoxes);
       
       // Reset the removing flag after a short delay
       setTimeout(() => {
         setIsRemoving(false);
       }, 100);
 
-      setCurrentBox(prev => ({ ...prev, boxNo: (renumberedBoxes.length + 1).toString() }));
+    setCurrentBox(prev => ({ ...prev, boxNo: (renumberedBoxes.length + 1).toString() }));
       
       return renumberedBoxes;
     });
@@ -355,8 +422,18 @@ const CreateShipment = ({ products = [], onAdd }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.invoiceNo || !formData.partyName || !formData.quantityToBePacked || boxes.length === 0) {
+    if(!formData.partyName){
+      setErrors({ message: 'Please enter a valid Customer Name.' });
+      return;
+    }
+    if (!formData.invoiceNo || !formData.customer || !formData.partyName || !formData.quantityToBePacked || boxes.length === 0) {
       setErrors({ message: 'Please fill in all required fields and add at least one box.' });
+      return;
+    }
+
+    // Additional validation: ensure a valid customer was selected
+    if (!selectedCustomer) {
+      setErrors({ message: 'Please select a customer from the dropdown list.' });
       return;
     }
 
@@ -371,13 +448,17 @@ const CreateShipment = ({ products = [], onAdd }) => {
         // Find the product by SKU to get the ObjectId
         const foundProduct = products.find(p => p.sku === product.sku);
         if (!foundProduct) {
+          console.log('Product not found for SKU:', product.sku);
           return product;
         }
         
-        return {
+        const processedProduct = {
           ...product,
           product: foundProduct._id || foundProduct.id // Add the required 'product' field
         };
+        
+        
+        return processedProduct;
       })
     }));
 
@@ -387,12 +468,14 @@ const CreateShipment = ({ products = [], onAdd }) => {
       id: uuidv4(),
       date: formData.date,
       invoiceNo: formData.invoiceNo,
+      customer: formData.customer,
       partyName: formData.partyName,
       requiredQty: parseInt(formData.quantityToBePacked),
       startTime: formData.startTime,
       endTime: endTime, // Use the current time as end time
       boxes: processedBoxes
     };
+
 
     localDB.remove('tempBoxes');
     onAdd?.(shipment);
@@ -454,55 +537,55 @@ const CreateShipment = ({ products = [], onAdd }) => {
         >
           
                     {/* Form Fields - One Line */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px', alignItems: 'end' }}>
-                          <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.7fr 2.5fr 0.7fr 0.7fr', gap: '8px', alignItems: 'end' }}>
+            <div>
                 <label style={{ display: 'block', marginBottom: '2px', fontWeight: '700', color: '#34495e', fontSize: '10px' }}>
-                  Date
-                </label>
-                <input
-                  type="date"
-                  style={{
-                    width: '100%',
+                Date
+              </label>
+              <input
+                type="date"
+                style={{
+                  width: '100%',
                     padding: '4px',
                     border: '1px solid #e9ecef',
                     borderRadius: '3px',
                     fontSize: '15px',
                     backgroundColor: '#f8f9fa',
                     color: '#495057'
-                  }}
-                  value={formData.date || ''}
+                }}
+                value={formData.date || ''}
                   readOnly
-                />
-              </div>
+              />
+            </div>
 
-              <div>
+            <div>
                 <label style={{ display: 'block', marginBottom: '2px', fontWeight: '700', color: '#34495e', fontSize: '12px' }}>
                   Invoice No <span style={{ color: '#dc3545' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  style={{
-                    width: '100%',
+              </label>
+              <input
+                type="text"
+                style={{
+                  width: '100%',
                     padding: '4px',
                     border: '1px solid #e9ecef',
                     borderRadius: '3px',
                     fontSize: '15px'
-                  }}
-                  value={formData.invoiceNo}
-                  onChange={(e) => setFormData({ ...formData, invoiceNo: e.target.value })}
-                  required
-                  placeholder="Invoice #"
-                />
-              </div>
+                }}
+                value={formData.invoiceNo}
+                onChange={(e) => setFormData({ ...formData, invoiceNo: e.target.value })}
+                required
+                placeholder="Invoice #"
+              />
+            </div>
 
-              <div>
+            <div>
                 <label style={{ display: 'block', marginBottom: '2px', fontWeight: '700', color: '#34495e', fontSize: '10px' }}>
                   Total Quantity <span style={{ color: '#dc3545' }}>*</span>
-                </label>
-                <input
+              </label>
+              <input
                   type="number"
-                  style={{
-                    width: '100%',
+                style={{
+                  width: '100%',
                     padding: '4px',
                     border: '1px solid #e9ecef',
                     borderRadius: '3px',
@@ -510,30 +593,69 @@ const CreateShipment = ({ products = [], onAdd }) => {
                   }}
                   value={formData.quantityToBePacked || ''}
                   onChange={(e) => setFormData({ ...formData, quantityToBePacked: e.target.value })}
-                  required
+                required
                   placeholder="Qty"
                   min="1"
-                />
-              </div>
+              />
+            </div>
 
-            <div>
+            <div className="customer-suggestions-container" style={{ position: 'relative' }}>
               <label style={{ display: 'block', marginBottom: '2px', fontWeight: '700', color: '#34495e', fontSize: '10px' }}>
-                Party Name <span style={{ color: '#dc3545' }}>*</span>
+                Customer <span style={{ color: '#dc3545' }}>*</span>
               </label>
               <input
                 type="text"
                 style={{
                   width: '100%',
                   padding: '4px',
-                  border: '1px solid #e9ecef',
+                  border: selectedCustomer ? '2px solid #28a745' : '1px solid #e9ecef',
                   borderRadius: '3px',
-                  fontSize: '15px'
+                  fontSize: '15px',
+                  backgroundColor: selectedCustomer ? '#f8fff9' : 'white'
                 }}
-                value={formData.partyName}
-                onChange={(e) => setFormData({ ...formData, partyName: e.target.value })}
+                value={customerSearchTerm}
+                onChange={handleCustomerSearch}
                 required
-                placeholder="Party Name"
+                placeholder="Search customer by code or name..."
+                autoComplete="off"
               />
+              {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #ced4da',
+                  borderRadius: '4px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  zIndex: 1000,
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}>
+                  {filteredCustomers.map(customer => (
+                    <div
+                      key={customer._id || customer.id}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #f8f9fa',
+                        fontSize: '14px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                      onClick={() => handleCustomerSelect(customer)}
+                    >
+                      <div style={{ fontWeight: 'bold', color: '#495057' }}>
+                        {customer.code}
+                      </div>
+                      <div style={{ color: '#6c757d', fontSize: '12px' }}>
+                        {customer.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -576,12 +698,12 @@ const CreateShipment = ({ products = [], onAdd }) => {
                 readOnly
                 placeholder="HH:MM"
               />
-            </div>
           </div>
-          
+        </div>
+
           {/* Shipment Summary - Full Line */}
           {boxes.length > 0 && (
-            <div style={{
+        <div style={{ 
               backgroundColor: '#e8f4fd',
               borderRadius: '6px',
               border: '1px solid #b3d9ff',
@@ -642,7 +764,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
               margin: '0 auto 20px auto'
             }}
           >
-            
+
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
@@ -717,7 +839,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                       <td style={{ padding: '10px', fontSize: '12px' }}>
                        
                      
-                       <div>
+                        <div>
                           <strong>{box.volumeWeight} kg</strong> 
                         </div>
                       </td>
@@ -835,7 +957,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
-          padding: '20px',
+              padding: '20px',
           marginTop: '20px',
           boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
           width: '98%',
@@ -845,7 +967,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               type="button"
-              style={{
+                style={{
                 padding: '12px 20px',
                 backgroundColor: '#28a745',
                 color: 'white',
@@ -863,7 +985,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
             
             <button
               type="button"
-              style={{
+                style={{
                 padding: '12px 20px',
                 backgroundColor: '#dc3545',
                 color: 'white',
@@ -879,42 +1001,42 @@ const CreateShipment = ({ products = [], onAdd }) => {
               ⚠️ Add Short Box
             </button>
             
-            <button
+          <button
               type="button"
-              style={{
+            style={{
                 padding: '12px 20px',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
                 borderRadius: '8px',
                 fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
+              fontWeight: '600',
+              cursor: 'pointer',
                 minWidth: '140px'
-              }}
+            }}
               onClick={handleSubmit}
-            >
+          >
               💾 Save Shipment
-            </button>
+          </button>
             
-            <button
-              type="button"
-              style={{
+          <button
+            type="button"
+            style={{
                 padding: '12px 20px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
                 borderRadius: '8px',
                 fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
+              fontWeight: '600',
+              cursor: 'pointer',
                 minWidth: '140px'
-              }}
-              onClick={() => navigate('/shipments')}
-            >
+            }}
+            onClick={() => navigate('/shipments')}
+          >
               ❌ Cancel
-            </button>
-          </div>
+          </button>
+        </div>
         </div>
 
       </form>
@@ -977,71 +1099,71 @@ const CreateShipment = ({ products = [], onAdd }) => {
                 <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#34495e' }}>Box Dimensions</h3>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                  <div>
+                <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Height (CM) <span style={{ color: '#dc3545' }}>*</span></label>
-                    <input
-                      type="number"
+                  <input
+                    type="number"
                       style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                      value={modalMode === 'edit' ? editingBox?.height : currentBox.height}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0;
-                        if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, height: v }));
-                        else handleBoxChange('height', v);
-                      }}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+                    value={modalMode === 'edit' ? editingBox?.height : currentBox.height}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value) || 0;
+                      if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, height: v }));
+                      else handleBoxChange('height', v);
+                    }}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Width (CM) <span style={{ color: '#dc3545' }}>*</span></label>
-                    <input
-                      type="number"
+                  <input
+                    type="number"
                       style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                      value={modalMode === 'edit' ? editingBox?.width : currentBox.width}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0;
-                        if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, width: v }));
-                        else handleBoxChange('width', v);
-                      }}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+                    value={modalMode === 'edit' ? editingBox?.width : currentBox.width}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value) || 0;
+                      if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, width: v }));
+                      else handleBoxChange('width', v);
+                    }}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Length (CM) <span style={{ color: '#dc3545' }}>*</span></label>
-                    <input
-                      type="number"
+                  <input
+                    type="number"
                       style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                      value={modalMode === 'edit' ? editingBox?.length : currentBox.length}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0;
-                        if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, length: v }));
-                        else handleBoxChange('length', v);
-                      }}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+                    value={modalMode === 'edit' ? editingBox?.length : currentBox.length}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value) || 0;
+                      if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, length: v }));
+                      else handleBoxChange('length', v);
+                    }}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Weight (KG) <span style={{ color: '#dc3545' }}>*</span></label>
-                    <input
-                      type="number"
+                  <input
+                    type="number"
                       style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                      value={modalMode === 'edit' ? editingBox?.weight : currentBox.weight}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0;
-                        if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, weight: v }));
-                        else handleBoxChange('weight', v);
-                      }}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+                    value={modalMode === 'edit' ? editingBox?.weight : currentBox.weight}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value) || 0;
+                      if (modalMode === 'edit') setEditingBox(prev => ({ ...prev, weight: v }));
+                      else handleBoxChange('weight', v);
+                    }}
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
               </div>
+            </div>
             )}
 
             {/* Short Box Info - Only for Short Boxes */}
@@ -1086,7 +1208,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
                     style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
                     value={currentProduct.sku}
                     onChange={handleSkuChange}
-                    placeholder="Type SKU to search..."
+                    placeholder="Type SKU or product name to search..."
                     autoComplete="off"
                   />
                   {showSkuSuggestions && skuSearchResults.length > 0 && (

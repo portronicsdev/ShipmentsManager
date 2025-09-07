@@ -238,6 +238,37 @@ class ApiService {
     // Don't set Content-Type manually - let the browser set it with the proper boundary
     return this.post('/products/import', formData);
   }
+
+  // Customers endpoints
+  async getCustomers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/customers?${queryString}` : '/customers';
+    return this.get(endpoint);
+  }
+
+  async getCustomer(id) {
+    return this.get(`/customers/${id}`);
+  }
+
+  async createCustomer(customerData) {
+    return this.post('/customers', customerData);
+  }
+
+  async updateCustomer(id, customerData) {
+    return this.put(`/customers/${id}`, customerData);
+  }
+
+  async deleteCustomer(id) {
+    return this.delete(`/customers/${id}`);
+  }
+
+  async importCustomers(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Don't set Content-Type manually - let the browser set it with the proper boundary
+    return this.post('/customers/import', formData);
+  }
 }
 
 const apiService = new ApiService();

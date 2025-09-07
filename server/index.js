@@ -38,6 +38,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/super-categories', require('./routes/superCategories'));
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/customers', require('./routes/customers'));
 
 // --- Error handlers
 app.use((err, _req, res, _next) => {
