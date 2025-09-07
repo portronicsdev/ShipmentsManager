@@ -15,7 +15,6 @@ function AppContent() {
   const [shipments, setShipments] = useState([]);
   const [totalShipments, setTotalShipments] = useState(0);
   const [products, setProducts] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -222,56 +221,6 @@ function AppContent() {
     }
   };
 
-  const addCustomer = async (newCustomer) => {
-    try {
-      const response = await api.createCustomer(newCustomer);
-      if (response.success) {
-        setCustomers(prev => [...prev, response.data.customer]);
-        showSuccess('Customer created successfully!');
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const updateCustomer = async (updatedCustomer) => {
-    try {
-      // Extract the correct ID - handle both _id and id
-      const customerId = updatedCustomer._id || updatedCustomer.id;
-      const response = await api.updateCustomer(customerId, updatedCustomer);
-      if (response.success) {
-        setCustomers(prev => prev.map(c => {
-          const cId = c._id || c.id;
-          return cId === customerId ? response.data.customer : c;
-        }));
-        showSuccess('Customer updated successfully!');
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const deleteCustomer = async (customerId) => {
-    try {
-      const response = await api.deleteCustomer(customerId);
-      if (response.success) {
-        setCustomers(prev => prev.filter(c => {
-          const cId = c._id || c.id;
-          return cId !== customerId;
-        }));
-        showSuccess('Customer deleted successfully!');
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      throw error;
-    }
-  };
-
   return (
     <div className="App">
       {user && (
@@ -304,7 +253,7 @@ function AppContent() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>🚢 Shipments Manager</h1>
+                <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>Shipments Manager</h1>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     onClick={() => setSidebarPinned(!sidebarPinned)}
@@ -682,9 +631,6 @@ function AppContent() {
                 path="/customers"
                 element={
                   <Customers
-                    onAdd={addCustomer}
-                    onUpdate={updateCustomer}
-                    onDelete={deleteCustomer}
                     user={user}
                   />
                 }

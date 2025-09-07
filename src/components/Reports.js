@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 
 const Reports = ({ shipments = [] }) => {
@@ -149,24 +149,6 @@ const Reports = ({ shipments = [] }) => {
   }, [showCustomerDetails]);
 
   // Export functions
-  const exportToCSV = (data, filename) => {
-    const csvContent = data.map(row => 
-      Object.values(row).map(value => `"${value}"`).join(',')
-    ).join('\n');
-    
-    const headers = Object.keys(data[0]).map(header => `"${header}"`).join(',');
-    const csv = headers + '\n' + csvContent;
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const exportToExcel = (data, filename) => {
     const ws = XLSX.utils.json_to_sheet(data);
@@ -431,7 +413,7 @@ const Reports = ({ shipments = [] }) => {
               className={`btn ${selectedReport === 'all-shipments' ? 'btn-primary' : 'btn-outline-primary'}`}
               onClick={() => setSelectedReport('all-shipments')}
             >
-              All Shipments Report
+              Detailed Full Report
             </button>
           </div>
 

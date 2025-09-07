@@ -227,8 +227,8 @@
 .count-badge {
   background-color: #6c757d;
   color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 4px 15px;
+  border-radius: 5px;
   font-size: 0.85rem;
   font-weight: 500;
   margin-left: auto;

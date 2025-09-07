@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 
-const Customers = ({ onAdd, onUpdate, onDelete, user }) => {
+const Customers = ({ user }) => {
   const [customers, setCustomers] = useState([]);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -70,7 +70,6 @@ const Customers = ({ onAdd, onUpdate, onDelete, user }) => {
             const cIdStr = typeof cId === 'string' ? cId : cId.toString();
             return cIdStr === customerId ? response.data.customer : c;
           }));
-          onUpdate && onUpdate(response.data.customer);
           alert(response.message || 'Customer updated successfully');
         } else {
           alert(`Error: ${response.message || 'Failed to update customer'}`);
@@ -79,7 +78,6 @@ const Customers = ({ onAdd, onUpdate, onDelete, user }) => {
         const response = await api.createCustomer(formData);
         if (response.success) {
           setCustomers(prev => [...prev, response.data.customer]);
-          onAdd && onAdd(response.data.customer);
           alert(response.message || 'Customer created successfully');
         } else {
           alert(`Error: ${response.message || 'Failed to create customer'}`);
@@ -225,7 +223,7 @@ const Customers = ({ onAdd, onUpdate, onDelete, user }) => {
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -245,11 +243,11 @@ const Customers = ({ onAdd, onUpdate, onDelete, user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchCustomers();
-  }, [searchTerm]);
+  }, [fetchCustomers]);
 
   // Handle escape key to close modals
   useEffect(() => {

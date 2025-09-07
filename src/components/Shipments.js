@@ -1253,7 +1253,6 @@ const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) 
     <div className="container">
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Shipments Management</h2>
           <div className="count-badge">
             {searchTerm ? `Showing: ${filteredShipments.length} of ${totalShipments}` : `Total Shipments: ${totalShipments}`}
           </div>
