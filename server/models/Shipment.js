@@ -148,6 +148,10 @@ const shipmentSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  isTempShipment: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

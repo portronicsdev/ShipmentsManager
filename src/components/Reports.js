@@ -41,8 +41,11 @@ const Reports = ({ shipments = [] }) => {
     }
   };
 
-  // Filter shipments by date range
+  // Filter shipments by date range and exclude temp shipments
   const filteredShipments = shipments.filter(shipment => {
+    // Exclude temp shipments from all reports
+    if (shipment.isTempShipment) return false;
+    
     if (!dateRange.startDate && !dateRange.endDate) return true;
     
     const shipmentDate = new Date(shipment.date);

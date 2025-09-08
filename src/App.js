@@ -326,6 +326,34 @@ function AppContent() {
             <div style={{ padding: '20px', flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <Link
+                  to="/create-shipment"
+                  style={{
+                    padding: '12px 16px',
+                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
+                  }}
+                >
+                  ➕ Create Shipment
+                </Link>
+                <Link
                   to="/shipments"
                   style={{
                     padding: '12px 16px',
@@ -439,35 +467,6 @@ function AppContent() {
                   }}
                 >
                   📊 Reports
-                </Link>
-
-                <Link
-                  to="/create-shipment"
-                  style={{
-                    padding: '12px 16px',
-                    background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    boxShadow: '0 2px 4px rgba(74, 144, 226, 0.3)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'linear-gradient(135deg, #357abd 0%, #2c5aa0 100%)';
-                    e.target.style.transform = 'translateY(-1px)';
-                    e.target.style.boxShadow = '0 4px 8px rgba(74, 144, 226, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 2px 4px rgba(74, 144, 226, 0.3)';
-                  }}
-                >
-                  ➕ Create Shipment
                 </Link>
               </div>
             </div>

@@ -456,6 +456,22 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
 
 
 
+    // Calculate packed quantity from all boxes
+    const packedQuantity = boxes.reduce(
+      (sum, box) => sum + box.products.reduce((boxSum, product) => boxSum + (parseInt(product.quantity) || 0), 0),
+      0
+    );
+    
+    const requiredQty = parseInt(formData.requiredQty) || 0;
+    
+    // Validation: Packed Quantity must equal Required Quantity
+    if (packedQuantity !== requiredQty) {
+      alert(`Packed Quantity (${packedQuantity}) must equal Required Quantity (${requiredQty}). Please adjust your boxes or required quantity.`);
+      return;
+    }
+
+    formData.isTempShipment = false;
+
     const updatedShipment = {
       ...shipment,
       ...formData,
@@ -604,13 +620,23 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           <h5 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#2c3e50' }}>📊 Current Weight Summary</h5>
           {(() => {
             const weights = calculateShipmentWeights(boxes);
+            // Calculate packed quantity from all boxes
+            const packedQuantity = boxes.reduce(
+              (sum, box) => sum + box.products.reduce((boxSum, product) => boxSum + (parseInt(product.quantity) || 0), 0),
+              0
+            );
             return (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: '15px',
                 fontSize: '13px'
               }}>
+                <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+                  <strong style={{ color: '#2c3e50' }}>Packed Quantity:</strong>
+                  <br />
+                  <span style={{ color: '#6c757d' }}>{packedQuantity}</span>
+                </div>
                 <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
                   <strong style={{ color: '#2c3e50' }}>Total Weight:</strong>
                   <br />
@@ -853,13 +879,13 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         >
           <div
             style={{
-              backgroundColor: 'white', borderRadius: '12px', padding: '30px',
-              maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto',
+              backgroundColor: 'white', borderRadius: '12px', padding: '15px',
+              maxWidth: '800px', width: '90%', maxHeight: '95vh', overflowY: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', margin: 0, color: '#2c3e50' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0, color: '#2c3e50' }}>
                 {modalMode === 'edit' ? 'Edit' : 'Add'} {newBox.isShortBox ? 'Short ' : ''}Box #{newBox.boxNo}
               </h2>
               <button
@@ -871,66 +897,18 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
               </button>
             </div>
 
-            {/* Box Dimensions */}
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', margin: '0 0 15px 0', color: '#34495e' }}>Box Dimensions</h3>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Length (CM)</label>
-                  <input
-                    type="number"
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
-                    value={newBox.length}
-                    onChange={(e) => setNewBox(prev => ({ ...prev, length: parseFloat(e.target.value) || 0 }))}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Height (CM)</label>
-                  <input
-                    type="number"
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
-                    value={newBox.height}
-                    onChange={(e) => setNewBox(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Width (CM)</label>
-                  <input
-                    type="number"
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
-                    value={newBox.width}
-                    onChange={(e) => setNewBox(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Weight (KG)</label>
-                  <input
-                    type="number"
-                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '14px' }}
-                    value={newBox.weight}
-                    onChange={(e) => setNewBox(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                    min="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Add Products (inside modal) */}
-            <div style={{ padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#34495e' }}>
+             {/* Add Products (inside modal) */}
+            <div style={{ padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '6px', marginBottom: '10px' }}>
+              <h4 style={{ fontSize: '12px', margin: '0 0 8px 0', color: '#34495e' }}>
                 Add Products to Box
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.5fr 1fr', gap: '15px', marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.5fr 1fr', gap: '10px', marginBottom: '8px' }}>
                 <div className="sku-suggestions-container" style={{ position: 'relative' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>SKU</label>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>SKU</label>
                   <input
                     type="text"
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
                     value={currentProduct.sku}
                     onChange={handleSkuChange}
                     placeholder="Type SKU or product name to search..."
@@ -976,25 +954,27 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                   )}
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>External SKU</label>
-                  <input
-                    type="text"
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                    value={currentProduct.externalSku}
-                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Quantity</label>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Quantity</label>
                   <input
                     type="number"
-                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
                     value={currentProduct.quantity}
                     onChange={(e) => handleProductChange('quantity', parseInt(e.target.value) || 1)}
                     min="1"
+                  />
+                </div>
+
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>External SKU</label>
+                  <input
+                    type="text"
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
+                    value={currentProduct.externalSku}
+                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
+                    placeholder="Optional"
                   />
                 </div>
 
@@ -1010,10 +990,81 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
               </div>
             </div>
 
+            {/* Box Dimensions - Only for Normal Boxes */}
+            {!newBox.isShortBox && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', margin: '0 0 15px 0', color: '#34495e' }}>Box Dimensions</h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Length (CM)</label>
+                  <input
+                    type="number"
+                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '11px' }}
+                    value={newBox.length}
+                    onChange={(e) => setNewBox(prev => ({ ...prev, length: parseFloat(e.target.value) || 0 }))}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Height (CM)</label>
+                  <input
+                    type="number"
+                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '11px' }}
+                    value={newBox.height}
+                    onChange={(e) => setNewBox(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Width (CM)</label>
+                  <input
+                    type="number"
+                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '11px' }}
+                    value={newBox.width}
+                    onChange={(e) => setNewBox(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#34495e' }}>Weight (KG)</label>
+                  <input
+                    type="number"
+                    style={{ width: '100%', padding: '10px', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '11px' }}
+                    value={newBox.weight}
+                    onChange={(e) => setNewBox(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                    min="0"
+                  />
+                </div>
+              </div>
+            </div>
+            )}
+
+             {/* Short Box Info - Only for Short Boxes */}
+             {newBox.isShortBox && (
+               <div style={{ 
+                 marginBottom: '10px', 
+                 padding: '10px', 
+                 backgroundColor: '#fff3cd', 
+                 border: '1px solid #ffeaa7', 
+                 borderRadius: '6px',
+                 textAlign: 'center'
+               }}>
+                 <h3 style={{ fontSize: '14px', margin: '0 0 5px 0', color: '#856404' }}>
+                   📦 Short Box - No Dimensions Required
+                 </h3>
+                 <p style={{ fontSize: '12px', margin: '0', color: '#856404' }}>
+                   Short boxes have no physical dimensions and weight. Only products need to be added.
+                 </p>
+               </div>
+             )}
+
+           
+
             {/* Current Products in Modal */}
             {newBox.products.length > 0 && (
-              <div style={{ padding: '20px', backgroundColor: '#e8f4fd', borderRadius: '8px', marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#34495e' }}>Current Products in Box</h4>
+              <div style={{ padding: '10px', backgroundColor: '#e8f4fd', borderRadius: '6px', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '12px', margin: '0 0 8px 0', color: '#34495e' }}>Current Products in Box</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                   {newBox.products.map(product => (
                     <div key={product.id} style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #dee2e6', fontSize: '12px' }}>
@@ -1114,15 +1165,22 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
             minWidth: '100px'
           }}
           onClick={() => {
+            // Check if trying to add a Short Box when one already exists
+            const existingShortBox = boxes.find(box => box.isShortBox);
+            if (existingShortBox) {
+              alert('Only one Short Box is allowed per shipment.');
+              return;
+            }
+            
             const newBox = {
               id: `box_${Date.now()}`,
               boxNo: (boxes.length + 1).toString(),
               isShortBox: true,
               products: [],
-              weight: 0,
-              length: 0,
-              height: 0,
-              width: 0,
+              weight: 0,  // 0kg for short boxes
+              length: 0,   // 0cm for short boxes
+              height: 0,   // 0cm for short boxes
+              width: 0,    // 0cm for short boxes
               volume: 0,
               volumeWeight: 0,
               finalWeight: 0
@@ -1287,9 +1345,27 @@ const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) 
             {filteredShipments.map(shipment => {
               const weights = calculateShipmentWeights(shipment.boxes);
               return (
-              <tr key={shipment.id}>
+              <tr key={shipment.id} style={{ 
+                backgroundColor: shipment.isTempShipment ? '#fff3cd' : 'transparent',
+                borderLeft: shipment.isTempShipment ? '4px solid #ffc107' : 'none'
+              }}>
                 <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
-                <td>{shipment.invoiceNo}</td>
+                <td>
+                  {shipment.invoiceNo}
+                  {shipment.isTempShipment && (
+                    <span style={{ 
+                      marginLeft: '8px', 
+                      padding: '2px 6px', 
+                      backgroundColor: '#ffc107', 
+                      color: '#000', 
+                      borderRadius: '3px', 
+                      fontSize: '10px', 
+                      fontWeight: '600' 
+                    }}>
+                      TEMP
+                    </span>
+                  )}
+                </td>
                 <td>{shipment.partyName}</td>
                 <td>{shipment.boxes.length}</td>
                 <td>{weights.totalWeight} kg</td>

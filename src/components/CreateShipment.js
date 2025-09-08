@@ -454,6 +454,22 @@ const CreateShipment = ({ products = [], onAdd }) => {
       return;
     }
 
+    // Calculate packed quantity from all boxes
+    const totalInvoiceQty = boxes.reduce(
+      (sum, box) => sum + box.products.reduce((boxSum, product) => boxSum + (parseInt(product.quantity) || 0), 0),
+      0
+    );
+    
+    const requiredQty = parseInt(formData.quantityToBePacked) || 0;
+    
+    // Validation: Packed Quantity must equal Total Quantity
+    if (totalInvoiceQty !== requiredQty) {
+      setErrors({ 
+        message: `Packed Quantity (${totalInvoiceQty}) must equal Total Quantity (${requiredQty}). Please adjust your boxes or total quantity.` 
+      });
+      return;
+    }
+
     // Set end time when saving shipment
     const now = new Date();
     const endTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -493,6 +509,68 @@ const CreateShipment = ({ products = [], onAdd }) => {
       boxes: processedBoxes
     };
 
+
+    localDB.remove('tempBoxes');
+    onAdd?.(shipment);
+    navigate('/shipments');
+  };
+
+  const handleTempSubmit = (e) => {
+    e.preventDefault();
+
+    if(!formData.partyName){
+      setErrors({ message: 'Please enter a valid Customer Name.' });
+      return;
+    }
+    if (!formData.invoiceNo || !formData.customer || !formData.partyName || boxes.length === 0) {
+      setErrors({ message: 'Please fill in all required fields and add at least one box.' });
+      return;
+    }
+
+    // Additional validation: ensure a valid customer was selected
+    if (!selectedCustomer) {
+      setErrors({ message: 'Please select a customer from the dropdown list.' });
+      return;
+    }
+
+    // Note: No quantity validation for temp shipments
+
+    // Set end time when saving temp shipment
+    const now = new Date();
+    const endTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // Process boxes to ensure each product has the required 'product' field (Product ObjectId)
+    const processedBoxes = boxes.map(box => ({
+      ...box,
+      products: box.products.map(product => {
+        // Find the product by SKU to get the ObjectId
+        const foundProduct = products.find(p => p.sku === product.sku);
+        if (!foundProduct) {
+          console.log('Product not found for SKU:', product.sku);
+          return product;
+        }
+        
+        const processedProduct = {
+          ...product,
+          product: foundProduct._id || foundProduct.id // Add the required 'product' field
+        };
+        
+        return processedProduct;
+      })
+    }));
+
+    const shipment = {
+      id: uuidv4(),
+      date: formData.date,
+      invoiceNo: formData.invoiceNo,
+      customer: formData.customer,
+      partyName: formData.partyName,
+      requiredQty: parseInt(formData.quantityToBePacked) || 0, // Allow 0 for temp shipments
+      startTime: formData.startTime,
+      endTime: endTime, // Use the current time as end time
+      boxes: processedBoxes,
+      isTempShipment: true // Mark as temp shipment
+    };
 
     localDB.remove('tempBoxes');
     onAdd?.(shipment);
@@ -1116,6 +1194,24 @@ const CreateShipment = ({ products = [], onAdd }) => {
           </button>
             
           <button
+              type="button"
+            style={{
+                padding: '12px 20px',
+              backgroundColor: '#e6c14aff',
+              color: 'black',
+              border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+                minWidth: '140px'
+            }}
+              onClick={handleTempSubmit}
+          >
+              📝 Save Temp Shipment
+          </button>
+            
+          <button
             type="button"
             style={{
                 padding: '12px 20px',
@@ -1158,16 +1254,16 @@ const CreateShipment = ({ products = [], onAdd }) => {
             style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '20px',
+              padding: '15px',
               maxWidth: '800px',
               width: '90%',
-              maxHeight: '85vh',
+              maxHeight: '95vh',
               overflowY: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                               <h2 style={{ fontSize: '18px', margin: 0, color: '#2c3e50' }}>
                 {modalMode === 'edit' ? 
                   `Edit ${editingBox?.isShortBox ? 'Short ' : ''}Box #${editingBox?.boxNo}` : 
@@ -1189,10 +1285,147 @@ const CreateShipment = ({ products = [], onAdd }) => {
               </button>
             </div>
 
-            {/* Box Dimensions - Only for Normal Boxes */}
+         
+
+            {/* Short Box Info - Only for Short Boxes */}
+            {currentBox.isShortBox && (
+              <div style={{ 
+                marginBottom: '10px', 
+                padding: '10px', 
+                backgroundColor: '#fff3cd', 
+                border: '1px solid #ffeaa7', 
+                borderRadius: '6px',
+                textAlign: 'center'
+              }}>
+                <h3 style={{ fontSize: '14px', margin: '0 0 5px 0', color: '#856404' }}>
+                  📦 Short Box - No Dimensions Required
+                </h3>
+                <p style={{ fontSize: '12px', margin: '0', color: '#856404' }}>
+                  Short boxes have no physical dimensions and weight. Only products need to be added.
+                </p>
+              </div>
+            )}
+
+            {/* Add Products */}
+            <div
+              style={{
+                padding: '10px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px',
+                marginBottom: '10px'
+              }}
+            >
+              <h4 style={{ fontSize: '12px', margin: '0 0 4px 0', color: '#34495e' }}>
+                {modalMode === 'edit' ? 'Edit Products in Box' : 'Add Products to Box'}
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 1fr', gap: '5px', marginBottom: '4px' }}>
+                <div className="sku-suggestions-container" style={{ position: 'relative' }}>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>
+                    SKU <span style={{ color: '#dc3545' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
+                    value={currentProduct.sku}
+                    onChange={handleSkuChange}
+                    placeholder="Type SKU or product name to search..."
+                    autoComplete="off"
+                  />
+                  {showSkuSuggestions && skuSearchResults.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderTop: 'none',
+                      borderRadius: '0 0 6px 6px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      {skuSearchResults.map(product => (
+                        <div
+                          key={product._id}
+                          style={{
+                            padding: '10px 15px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #eee',
+                            fontSize: '12px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          onClick={() => handleSkuSelect(product)}
+                        >
+                          <div style={{ fontWeight: '600', color: '#333', marginBottom: '2px' }}>
+                            {product.sku} - {product.productName}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#999' }}>
+                            {product.categoryId?.name} ({product.categoryId?.superCategoryId?.name})
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>
+                    Quantity <span style={{ color: '#dc3545' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
+                    value={currentProduct.quantity}
+                    onChange={(e) => handleProductChange('quantity', parseInt(e.target.value) || 1)}
+                    min="1"
+                  />
+                </div>
+
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>
+                    External SKU
+                  </label>
+                  <input
+                    type="text"
+                    style={{ width: '100%', padding: '6px', border: '2px solid #e9ecef', borderRadius: '4px', fontSize: '12px' }}
+                    value={currentProduct.externalSku}
+                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+
+
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#17a2b8',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                    onClick={modalMode === 'edit' ? addProductToEditingBox : addProductToBox}
+                  >
+                    Add Product
+                  </button>
+                </div>
+              </div>
+            </div>
+
+
+               {/* Box Dimensions - Only for Normal Boxes */}
             {!currentBox.isShortBox && (
-              <div style={{ marginBottom: '15px' }}>
-                <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#34495e' }}>Box Dimensions</h3>
+              <div style={{ marginBottom: '5px' }}>
+                <h3 style={{ fontSize: '14px', margin: '0 0 5px 0', color: '#34495e' }}>Box Dimensions</h3>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 <div>
@@ -1262,152 +1495,20 @@ const CreateShipment = ({ products = [], onAdd }) => {
             </div>
             )}
 
-            {/* Short Box Info - Only for Short Boxes */}
-            {currentBox.isShortBox && (
-              <div style={{ 
-                marginBottom: '20px', 
-                padding: '15px', 
-                backgroundColor: '#fff3cd', 
-                border: '1px solid #ffeaa7', 
-                borderRadius: '8px',
-                textAlign: 'center'
-              }}>
-                <h3 style={{ fontSize: '16px', margin: '0 0 10px 0', color: '#856404' }}>
-                  📦 Short Box - No Dimensions Required
-                </h3>
-                <p style={{ fontSize: '14px', margin: '0', color: '#856404' }}>
-                  Short boxes have no physical dimensions and weight. Only products need to be added.
-                </p>
-              </div>
-            )}
-
-            {/* Add Products */}
-            <div
-              style={{
-                padding: '15px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px',
-                marginBottom: '15px'
-              }}
-            >
-              <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#34495e' }}>
-                {modalMode === 'edit' ? 'Edit Products in Box' : 'Add Products to Box'}
-              </h4>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 1fr', gap: '15px', marginBottom: '10px' }}>
-                <div className="sku-suggestions-container" style={{ position: 'relative' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
-                    SKU <span style={{ color: '#dc3545' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                    value={currentProduct.sku}
-                    onChange={handleSkuChange}
-                    placeholder="Type SKU or product name to search..."
-                    autoComplete="off"
-                  />
-                  {showSkuSuggestions && skuSearchResults.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: 'white',
-                      border: '1px solid #ccc',
-                      borderTop: 'none',
-                      borderRadius: '0 0 6px 6px',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      zIndex: 1000,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}>
-                      {skuSearchResults.map(product => (
-                        <div
-                          key={product._id}
-                          style={{
-                            padding: '10px 15px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #eee',
-                            fontSize: '12px'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                          onClick={() => handleSkuSelect(product)}
-                        >
-                          <div style={{ fontWeight: '600', color: '#333', marginBottom: '2px' }}>
-                            {product.sku} - {product.productName}
-                          </div>
-                          <div style={{ fontSize: '10px', color: '#999' }}>
-                            {product.categoryId?.name} ({product.categoryId?.superCategoryId?.name})
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
-                    External SKU
-                  </label>
-                  <input
-                    type="text"
-                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                    value={currentProduct.externalSku}
-                    onChange={(e) => handleProductChange('externalSku', e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '13px' }}>
-                    Quantity <span style={{ color: '#dc3545' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    style={{ width: '100%', padding: '8px', border: '2px solid #e9ecef', borderRadius: '6px', fontSize: '13px' }}
-                    value={currentProduct.quantity}
-                    onChange={(e) => handleProductChange('quantity', parseInt(e.target.value) || 1)}
-                    min="1"
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                  <button
-                    type="button"
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#17a2b8',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      width: '100%'
-                    }}
-                    onClick={modalMode === 'edit' ? addProductToEditingBox : addProductToBox}
-                  >
-                    Add Product
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Current Products in Box */}
             {(modalMode === 'edit' ? (editingBox?.products?.length > 0) : (currentBox.products.length > 0)) && (
               <div
                 style={{
-                  padding: '15px',
+                  padding: '10px',
                   backgroundColor: '#e8f4fd',
-                  borderRadius: '8px',
-                  marginBottom: '15px'
+                  borderRadius: '6px',
+                  marginBottom: '10px'
                 }}
               >
-                <h5 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#2c3e50' }}>
+                <h5 style={{ fontSize: '12px', margin: '0 0 8px 0', color: '#2c3e50' }}>
                   Products in Box #{modalMode === 'edit' ? editingBox?.boxNo : currentBox.boxNo}:
                 </h5>
-                <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   <div style={{ display: 'grid', gap: '8px' }}>
                     {(modalMode === 'edit' ? editingBox?.products : currentBox.products).map((product) => (
                       <div

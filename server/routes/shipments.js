@@ -307,7 +307,8 @@ router.post('/', [
       date: new Date(req.body.date), // Convert string to Date object
       boxes: processedBoxes,
       notes,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      isTempShipment: req.body.isTempShipment || false
     });
 
     await shipment.populate('customer', 'code name');
