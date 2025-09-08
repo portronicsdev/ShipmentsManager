@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const Reports = ({ shipments = [] }) => {
   const [selectedReport, setSelectedReport] = useState('summary');
@@ -389,6 +391,253 @@ const Reports = ({ shipments = [] }) => {
     exportToExcel(data, `${filename}.xlsx`);
   };
 
+  // PDF Export Functions
+  const exportToPDF = (data, filename, title) => {
+    const doc = new jsPDF('landscape'); // Use landscape orientation for better readability
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text(title, 14, 22);
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, 14, 30);
+    
+    // Add table
+    if (data && data.length > 0) {
+      const columns = Object.keys(data[0]);
+      const rows = data.map(row => columns.map(col => row[col] || ''));
+      
+      autoTable(doc, {
+        head: [columns],
+        body: rows,
+        startY: 40,
+        styles: { 
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'left'
+        },
+        headStyles: { 
+          fillColor: [66, 139, 202],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        didParseCell: function(data) {
+          // Style SHIPMENT rows differently
+          if (data.row.index > 0 && data.cell.text[0] === 'SHIPMENT') {
+            data.cell.styles.fillColor = [220, 248, 198]; // Light green background
+            data.cell.styles.fontStyle = 'bold';
+          }
+          // Style BOX rows differently
+          else if (data.row.index > 0 && data.cell.text[0] === 'BOX') {
+            data.cell.styles.fillColor = [255, 255, 255]; // White background
+            data.cell.styles.fontStyle = 'normal';
+          }
+          // Style PRODUCT rows differently
+          else if (data.row.index > 0 && data.cell.text[0] === 'PRODUCT') {
+            data.cell.styles.fillColor = [248, 249, 250]; // Light gray background
+            data.cell.styles.fontStyle = 'normal';
+          }
+        },
+        columnStyles: {
+          'Type': { cellWidth: 15 },
+          'Shipment #': { cellWidth: 15 },
+          'Invoice': { cellWidth: 20 },
+          'Date': { cellWidth: 20 },
+          'Customer': { cellWidth: 30 },
+          'Time': { cellWidth: 25 },
+          'Total Boxes': { cellWidth: 15 },
+          'Total Weight (kg)': { cellWidth: 20 },
+          'Details': { cellWidth: 40 }
+        },
+        margin: { left: 14, right: 14 },
+        tableWidth: 'auto'
+      });
+    }
+    
+    doc.save(`${filename}.pdf`);
+  };
+
+  const exportSummaryReportPDF = () => {
+    const data = Object.entries(summary.customerStats).map(([customer, stats]) => ({
+      'Customer': customer,
+      'Shipments': stats.count,
+      'Total Boxes': stats.totalBoxes,
+      'Total Weight (kg)': stats.totalWeight.toFixed(2),
+      'Charged Weight (kg)': stats.totalWeight.toFixed(2)
+    }));
+
+    const filename = `Summary_Report_${format(new Date(), 'yyyy-MM-dd')}`;
+    exportToPDF(data, filename, 'Summary Report');
+  };
+
+  const exportDetailedReportPDF = () => {
+    const data = [];
+    
+    filteredShipments
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .forEach((shipment, shipmentIndex) => {
+        const totalWeight = shipment.boxes?.reduce((sum, box) => 
+          sum + parseFloat(box.finalWeight || 0), 0
+        ) || 0;
+
+        // Add shipment header row
+        data.push({
+          'Type': 'SHIPMENT',
+          'Shipment #': shipmentIndex + 1,
+          'Invoice': shipment.invoiceNo,
+          'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
+          'Customer': shipment.partyName,
+          'Time': `${shipment.startTime || 'N/A'} - ${shipment.endTime || 'N/A'}`,
+          'Total Boxes': shipment.boxes?.length || 0,
+          'Total Weight (kg)': totalWeight.toFixed(2),
+          'Details': ''
+        });
+
+        // Add box summary rows
+        shipment.boxes?.forEach((box, boxIndex) => {
+          const boxProducts = box.products || [];
+          const boxProductCount = boxProducts.reduce((sum, prod) => sum + (prod.quantity || 0), 0);
+          
+          data.push({
+            'Type': 'BOX',
+            'Shipment #': '',
+            'Invoice': '',
+            'Date': '',
+            'Customer': '',
+            'Time': '',
+            'Total Boxes': '',
+            'Total Weight (kg)': '',
+            'Details': `Box #${box.boxNo}${box.isShortBox ? ' (Short)' : ''} - ${boxProductCount} products - ${box.finalWeight || 0}kg`
+          });
+        });
+
+        // Add separator row between shipments
+        if (shipmentIndex < filteredShipments.length - 1) {
+          data.push({
+            'Type': '',
+            'Shipment #': '',
+            'Invoice': '',
+            'Date': '',
+            'Customer': '',
+            'Time': '',
+            'Total Boxes': '',
+            'Total Weight (kg)': '',
+            'Details': '────────────────────────────────────────'
+          });
+        }
+      });
+
+    const filename = `Detailed_Report_${format(new Date(), 'yyyy-MM-dd')}`;
+    exportToPDF(data, filename, 'Detailed Report');
+  };
+
+  const exportAllShipmentsReportPDF = () => {
+    const data = [];
+    
+    filteredShipments
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .forEach((shipment, shipmentIndex) => {
+        const totalWeight = shipment.boxes?.reduce((sum, box) => 
+          sum + parseFloat(box.finalWeight || 0), 0
+        ) || 0;
+
+        // Add shipment header row
+        data.push({
+          'Type': 'SHIPMENT',
+          'Shipment #': shipmentIndex + 1,
+          'Invoice': shipment.invoiceNo,
+          'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
+          'Customer': shipment.partyName,
+          'Time': `${shipment.startTime || 'N/A'} - ${shipment.endTime || 'N/A'}`,
+          'Total Boxes': shipment.boxes?.length || 0,
+          'Total Weight (kg)': totalWeight.toFixed(2),
+          'Details': ''
+        });
+
+        // Add box and product details
+        shipment.boxes?.forEach((box, boxIndex) => {
+          if (box.products && box.products.length > 0) {
+            box.products.forEach((product, productIndex) => {
+              data.push({
+                'Type': 'PRODUCT',
+                'Shipment #': '',
+                'Invoice': '',
+                'Date': '',
+                'Customer': '',
+                'Time': '',
+                'Total Boxes': '',
+                'Total Weight (kg)': '',
+                'Details': `Box #${box.boxNo}${box.isShortBox ? ' (Short)' : ''} | ${product.sku} - ${product.productName} | Qty: ${product.quantity}${product.externalSku ? ` | Ext: ${product.externalSku}` : ''}`
+              });
+            });
+          } else {
+            // Box with no products
+            data.push({
+              'Type': 'BOX',
+              'Shipment #': '',
+              'Invoice': '',
+              'Date': '',
+              'Customer': '',
+              'Time': '',
+              'Total Boxes': '',
+              'Total Weight (kg)': '',
+              'Details': `Box #${box.boxNo}${box.isShortBox ? ' (Short)' : ''} - No products - ${box.finalWeight || 0}kg`
+            });
+          }
+        });
+
+        // Add separator row between shipments
+        if (shipmentIndex < filteredShipments.length - 1) {
+          data.push({
+            'Type': '',
+            'Shipment #': '',
+            'Invoice': '',
+            'Date': '',
+            'Customer': '',
+            'Time': '',
+            'Total Boxes': '',
+            'Total Weight (kg)': '',
+            'Details': '────────────────────────────────────────'
+          });
+        }
+      });
+
+    const filename = `All_Shipments_Report_${format(new Date(), 'yyyy-MM-dd')}`;
+    exportToPDF(data, filename, 'Detailed Full Report');
+  };
+
+  const exportCustomerDetailsPDF = () => {
+    if (!selectedCustomer) return;
+    
+    const data = selectedCustomer.shipments
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .map((shipment, shipmentIndex) => {
+        const totalProducts = shipment.boxes?.reduce((sum, box) => 
+          sum + (box.products?.reduce((prodSum, prod) => prodSum + (prod.quantity || 0), 0) || 0), 0
+        ) || 0;
+        const totalWeight = shipment.boxes?.reduce((sum, box) => 
+          sum + parseFloat(box.finalWeight || 0), 0
+        ) || 0;
+
+        return {
+          'Shipment #': shipmentIndex + 1,
+          'Invoice': shipment.invoiceNo,
+          'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
+          'Time': `${shipment.startTime || 'N/A'} - ${shipment.endTime || 'N/A'}`,
+          'Boxes': shipment.boxes?.length || 0,
+          'Products': totalProducts,
+          'Weight (kg)': totalWeight.toFixed(2)
+        };
+      });
+
+    const filename = `Customer_Details_${selectedCustomer.name.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}`;
+    exportToPDF(data, filename, `Customer Details - ${selectedCustomer.name}`);
+  };
+
   return (
     <div className="container">
       <div className="card">
@@ -449,6 +698,17 @@ const Reports = ({ shipments = [] }) => {
               style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
             >
               📊 Export Excel
+            </button>
+            <button 
+              className="btn btn-danger btn-sm"
+              onClick={() => {
+                if (selectedReport === 'summary') exportSummaryReportPDF();
+                else if (selectedReport === 'detailed') exportDetailedReportPDF();
+                else if (selectedReport === 'all-shipments') exportAllShipmentsReportPDF();
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              📄 Export PDF
             </button>
           </div>
         </div>
@@ -1060,6 +1320,13 @@ const Reports = ({ shipments = [] }) => {
                 style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
               >
                 📊 Export Excel
+              </button>
+              <button 
+                className="btn btn-danger"
+                onClick={exportCustomerDetailsPDF}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                📄 Export PDF
               </button>
               <button className="btn btn-secondary" onClick={closeCustomerDetails}>
                 Close

@@ -21,6 +21,12 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
 
+  // Inline creation states
+  const [showCreateSuperCategory, setShowCreateSuperCategory] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newSuperCategoryName, setNewSuperCategoryName] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   // Check if user has permission to manage products
   const canManageProducts = user && (user.role === 'admin' || user.role === 'manager');
 
@@ -29,10 +35,40 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     
     try {
       if (editingProduct) {
-        const response = await api.updateProduct(editingProduct.id, formData);
+        // Extract the correct ID - handle both _id and id cases
+        let productId;
+        if (typeof editingProduct._id === 'string') {
+          productId = editingProduct._id;
+        } else if (typeof editingProduct.id === 'string') {
+          productId = editingProduct.id;
+        } else if (editingProduct._id && typeof editingProduct._id === 'object' && editingProduct._id.toString) {
+          productId = editingProduct._id.toString();
+        } else if (editingProduct.id && typeof editingProduct.id === 'object' && editingProduct.id.toString) {
+          productId = editingProduct.id.toString();
+        } else {
+          console.error('Invalid product ID for update:', editingProduct);
+          alert('Invalid product data');
+          return;
+        }
+        
+        // Final validation - ensure we have a valid ID
+        if (!productId || productId === 'undefined' || productId === 'null') {
+          console.error('Product ID is invalid:', productId);
+          alert('Invalid product ID. Cannot update product.');
+          return;
+        }
+        
+        // Create clean form data with only the required fields
+        const cleanFormData = {
+          sku: formData.sku,
+          productName: formData.productName,
+          origin: formData.origin,
+          categoryId: formData.categoryId // Ensure this is just the ID string, not an object
+        };
+        
+        const response = await api.updateProduct(productId, cleanFormData);
         if (response.success) {
-          setProducts(prev => prev.map(p => p.id === editingProduct.id ? response.data.product : p));
-          onUpdate && onUpdate(response.data.product);
+          setProducts(prev => prev.map(p => (p._id === productId || p.id === productId ? response.data.product : p)));
           alert(response.message || 'Product updated successfully');
         } else {
           alert(`Error: ${response.message || 'Failed to update product'}`);
@@ -41,7 +77,6 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
         const response = await api.createProduct(formData);
         if (response.success) {
           setProducts(prev => [...prev, response.data.product]);
-          onAdd && onAdd(response.data.product);
           alert(response.message || 'Product created successfully');
         } else {
           alert(`Error: ${response.message || 'Failed to create product'}`);
@@ -136,6 +171,66 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
     setShowSkuSuggestions(false);
     setEditingProduct(null);
     setShowModal(false);
+    setShowCreateSuperCategory(false);
+    setShowCreateCategory(false);
+    setNewSuperCategoryName('');
+    setNewCategoryName('');
+  };
+
+  // Create new Super Category
+  const createSuperCategory = async () => {
+    if (!newSuperCategoryName.trim()) {
+      alert('Please enter a super category name');
+      return;
+    }
+
+    try {
+      const response = await api.createSuperCategory({ name: newSuperCategoryName.trim() });
+      if (response.success) {
+        setSuperCategories(prev => [...prev, response.data.superCategory]);
+        setFormData(prev => ({ ...prev, superCategoryId: response.data.superCategory._id }));
+        setNewSuperCategoryName('');
+        setShowCreateSuperCategory(false);
+        alert('Super Category created successfully!');
+      } else {
+        alert(`Error: ${response.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating super category:', error);
+      alert('Failed to create super category');
+    }
+  };
+
+  // Create new Category
+  const createCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+
+    if (!formData.superCategoryId) {
+      alert('Please select a super category first');
+      return;
+    }
+
+    try {
+      const response = await api.createCategory({ 
+        name: newCategoryName.trim(),
+        superCategoryId: formData.superCategoryId
+      });
+      if (response.success) {
+        setCategories(prev => [...prev, response.data.category]);
+        setFormData(prev => ({ ...prev, categoryId: response.data.category._id }));
+        setNewCategoryName('');
+        setShowCreateCategory(false);
+        alert('Category created successfully!');
+      } else {
+        alert(`Error: ${response.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('Failed to create category');
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -332,7 +427,7 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
               <th style={{ width: '12%' }}>Origin</th>
               <th style={{ width: '18%' }}>Category</th>
               <th style={{ width: '18%' }}>Super Category</th>
-              <th style={{ width: '10%', minWidth: '150px' }}>Actions</th>
+              <th style={{ width: '15%', minWidth: '180px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -343,16 +438,16 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
                 <td>{product.origin || '-'}</td>
                 <td>{product.categoryId?.name || '-'}</td>
                 <td>{product.categoryId?.superCategoryId?.name || '-'}</td>
-                <td style={{ padding: '4px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <td style={{ padding: '6px', whiteSpace: 'nowrap', overflow: 'visible', minWidth: '180px' }}>
                   {canManageProducts ? (
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
                       <button 
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleEdit(product)}
                         style={{ 
-                          padding: '4px 8px', 
+                          padding: '6px 10px', 
                           fontSize: '0.8rem',
-                          minWidth: '50px',
+                          minWidth: '60px',
                           flexShrink: 0
                         }}
                       >
@@ -362,9 +457,9 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDelete(product._id || product.id)}
                         style={{ 
-                          padding: '4px 8px', 
+                          padding: '6px 10px', 
                           fontSize: '0.8rem',
-                          minWidth: '50px',
+                          minWidth: '60px',
                           flexShrink: 0
                         }}
                       >
@@ -481,42 +576,171 @@ const Products = ({ onAdd, onUpdate, onDelete, user }) => {
 
               <div className="form-group">
                 <label className="form-label">Super Category <span style={{ color: '#dc3545' }}>*</span></label>
-                <select
-                  className="form-control"
-                  value={formData.superCategoryId}
-                  onChange={(e) => {
-                    const superCategoryId = e.target.value;
-                    setFormData({ ...formData, superCategoryId, categoryId: '' }); // Reset category when super category changes
-                  }}
-                  required
-                >
-                  <option value="">Select a super category</option>
-                  {superCategories.map(superCategory => (
-                    <option key={superCategory._id} value={superCategory._id}>
-                      {superCategory.name}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    className="form-control"
+                    value={formData.superCategoryId}
+                    onChange={(e) => {
+                      const superCategoryId = e.target.value;
+                      setFormData({ ...formData, superCategoryId, categoryId: '' }); // Reset category when super category changes
+                    }}
+                    required
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select a super category</option>
+                    {superCategories.map(superCategory => (
+                      <option key={superCategory._id} value={superCategory._id}>
+                        {superCategory.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateSuperCategory(!showCreateSuperCategory)}
+                    style={{
+                      padding: '6px 8px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + New
+                  </button>
+                </div>
+                {showCreateSuperCategory && (
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newSuperCategoryName}
+                      onChange={(e) => setNewSuperCategoryName(e.target.value)}
+                      placeholder="Enter super category name"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={createSuperCategory}
+                      style={{
+                        padding: '6px 8px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Create
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateSuperCategory(false);
+                        setNewSuperCategoryName('');
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Category <span style={{ color: '#dc3545' }}>*</span></label>
-                <select
-                  className="form-control"
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  required
-                  disabled={!formData.superCategoryId}
-                >
-                  <option value="">Select a category</option>
-                  {categories
-                    .filter(category => category.superCategoryId?._id === formData.superCategoryId)
-                    .map(category => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </select>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    className="form-control"
+                    value={formData.categoryId}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    required
+                    disabled={!formData.superCategoryId}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select a category</option>
+                    {categories
+                      .filter(category => category.superCategoryId?._id === formData.superCategoryId)
+                      .map(category => (
+                        <option key={category._id} value={category._id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateCategory(!showCreateCategory)}
+                    disabled={!formData.superCategoryId}
+                    style={{
+                      padding: '6px 8px',
+                      backgroundColor: formData.superCategoryId ? '#28a745' : '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      fontSize: '0.8rem',
+                      cursor: formData.superCategoryId ? 'pointer' : 'not-allowed',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + New
+                  </button>
+                </div>
+                {showCreateCategory && (
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Enter category name"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={createCategory}
+                      style={{
+                        padding: '6px 8px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Create
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateCategory(false);
+                        setNewCategoryName('');
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                </button>
+                  </div>
+                )}
               </div>
               
               </form>

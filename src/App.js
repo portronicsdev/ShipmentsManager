@@ -195,9 +195,38 @@ function AppContent() {
 
   const updateProduct = async (updatedProduct) => {
     try {
-      const response = await api.updateProduct(updatedProduct.id, updatedProduct);
+      // Extract the correct ID - handle both _id and id cases
+      let productId;
+      if (typeof updatedProduct._id === 'string') {
+        productId = updatedProduct._id;
+      } else if (typeof updatedProduct.id === 'string') {
+        productId = updatedProduct.id;
+      } else if (updatedProduct._id && typeof updatedProduct._id === 'object' && updatedProduct._id.toString) {
+        productId = updatedProduct._id.toString();
+      } else if (updatedProduct.id && typeof updatedProduct.id === 'object' && updatedProduct.id.toString) {
+        productId = updatedProduct.id.toString();
+      } else {
+        console.error('Invalid product ID for update:', updatedProduct);
+        throw new Error('Invalid product data');
+      }
+      
+      // Final validation - ensure we have a valid ID
+      if (!productId || productId === 'undefined' || productId === 'null') {
+        console.error('Product ID is invalid:', productId);
+        throw new Error('Invalid product ID. Cannot update product.');
+      }
+      
+      // Create clean form data with only the required fields
+      const cleanFormData = {
+        sku: updatedProduct.sku,
+        productName: updatedProduct.productName,
+        origin: updatedProduct.origin,
+        categoryId: updatedProduct.categoryId // Ensure this is just the ID string, not an object
+      };
+      
+      const response = await api.updateProduct(productId, cleanFormData);
       if (response.success) {
-        setProducts(prev => prev.map(p => (p.id === updatedProduct.id ? response.data.product : p)));
+        setProducts(prev => prev.map(p => (p._id === productId || p.id === productId ? response.data.product : p)));
         showSuccess('Product updated successfully!');
       } else {
         throw new Error(response.message);

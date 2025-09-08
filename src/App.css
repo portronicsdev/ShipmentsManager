@@ -248,6 +248,50 @@
 }
 
 
+/* Ultra-compact modal styles for Products page */
+.products-page .modal {
+  max-height: 50vh !important;
+  max-width: 350px !important;
+  height: auto !important;
+}
+
+.products-page .modal-header {
+  padding: 8px 12px 4px 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.products-page .modal-header h3 {
+  font-size: 1rem !important;
+}
+
+.products-page .modal-body {
+  padding: 8px 12px !important;
+}
+
+.products-page .modal-footer {
+  padding: 8px 12px !important;
+}
+
+.products-page .form-group {
+  margin-bottom: 8px !important;
+}
+
+.products-page .form-label {
+  margin-bottom: 2px !important;
+  font-size: 0.8rem !important;
+}
+
+.products-page .form-control {
+  padding: 6px 8px !important;
+  font-size: 0.85rem !important;
+  border-radius: 3px !important;
+}
+
+.products-page .btn {
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+}
+
 /* Import modal specific styles */
 .customers-page .import-instructions {
   margin-top: 1rem;

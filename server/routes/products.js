@@ -88,11 +88,11 @@ router.post('/', [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Product name must be between 1 and 100 characters'),
-  body('masterCartonSize')
+  body('origin')
     .optional()
     .trim()
     .isLength({ max: 50 })
-    .withMessage('Master carton size cannot be more than 50 characters'),
+    .withMessage('Origin cannot be more than 50 characters'),
   body('categoryId')
     .isMongoId()
     .withMessage('Valid category is required')
@@ -107,7 +107,7 @@ router.post('/', [
       });
     }
 
-    const { sku, productName, masterCartonSize, categoryId } = req.body;
+    const { sku, productName, origin, categoryId } = req.body;
     console.log('Creating product with SKU:', sku);
 
     // Check if SKU already exists
@@ -130,7 +130,7 @@ router.post('/', [
     const product = await Product.create({
       sku: sku.toUpperCase(),
       productName,
-      masterCartonSize,
+      origin,
       categoryId,
       createdBy: req.user._id
     });
@@ -163,11 +163,11 @@ router.put('/:id', [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Product name must be between 1 and 100 characters'),
-  body('masterCartonSize')
+  body('origin')
     .optional()
     .trim()
     .isLength({ max: 50 })
-    .withMessage('Master carton size cannot be more than 50 characters'),
+    .withMessage('Origin cannot be more than 50 characters'),
   body('categoryId')
     .optional()
     .isMongoId()
@@ -180,6 +180,7 @@ router.put('/:id', [
   try {
     // Check for validation errors
     const errors = validationResult(req);
+    console.log("Validation errors:", errors.array());
     if (!errors.isEmpty()) {
       return res.status(400).json({ 
         message: 'Validation failed',

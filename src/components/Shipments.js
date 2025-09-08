@@ -8,15 +8,21 @@ import api from '../utils/api';
  *  EditShipmentForm
  *  ============================= */
 const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
+  // Debug: Log the shipment data to see what we're receiving
+  console.log('EditShipmentForm - shipment data:', shipment);
+  
   const [formData, setFormData] = useState({
     date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
-    invoiceNo: shipment.invoiceNo,
-    customer: shipment.customer || '',
-    partyName: shipment.partyName,
+    invoiceNo: shipment.invoiceNo || '',
+    customer: (typeof shipment.customer === 'object' && shipment.customer._id) ? shipment.customer._id : shipment.customer || '',
+    partyName: shipment.partyName || '',
     requiredQty: shipment.requiredQty || '',
     startTime: shipment.startTime || '',
     endTime: shipment.endTime || ''
   });
+  
+  // Debug: Log the initial form data
+  console.log('EditShipmentForm - initial formData:', formData);
 
 
 
@@ -37,12 +43,27 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           setCustomers(response.data.customers);
           // If shipment has a customer, find and set it
           if (shipment.customer) {
-            const customer = response.data.customers.find(c => 
-              (c._id || c.id) === shipment.customer
-            );
-            if (customer) {
-              setSelectedCustomer(customer);
-              setCustomerSearchTerm(`${customer.code} - ${customer.name}`);
+            console.log('EditShipmentForm - shipment.customer:', shipment.customer);
+            // Handle both populated customer object and customer ID
+            let customerId;
+            if (typeof shipment.customer === 'object' && shipment.customer._id) {
+              customerId = shipment.customer._id;
+            } else if (typeof shipment.customer === 'string') {
+              customerId = shipment.customer;
+            }
+            
+            console.log('EditShipmentForm - extracted customerId:', customerId);
+            
+            if (customerId) {
+              const customer = response.data.customers.find(c => 
+                (c._id || c.id) === customerId
+              );
+              console.log('EditShipmentForm - found customer:', customer);
+              if (customer) {
+                setSelectedCustomer(customer);
+                setCustomerSearchTerm(`${customer.code} - ${customer.name}`);
+                console.log('EditShipmentForm - set customer search term:', `${customer.code} - ${customer.name}`);
+              }
             }
           }
         }
@@ -76,7 +97,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     setFormData({
       date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
       invoiceNo: shipment.invoiceNo || '',
-      customer: shipment.customer || '',
+      customer: (typeof shipment.customer === 'object' && shipment.customer._id) ? shipment.customer._id : shipment.customer || '',
       partyName: shipment.partyName || '',
       requiredQty: shipment.requiredQty || shipment.quantityToBePacked || '',
       startTime: shipment.startTime || '',
@@ -457,7 +478,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
         border: '1px solid #dee2e6'
       }}>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 0.8fr 1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Date</label>
             <input
@@ -538,7 +559,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Qty To be Packed</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Quantity</label>
             <input
               type="number"
               style={{ width: '100%', padding: '6px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
@@ -981,27 +1002,9 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
                   <button
                     type="button"
                     style={{ padding: '10px 20px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', width: '100%' }}
-                    onClick={() => {
-                      if (modalMode === 'edit') {
-                        // Copy the current box being edited
-                        const copiedBox = {
-                          ...newBox,
-                          id: `box_${Date.now()}`,
-                          boxNo: (boxes.length + 1).toString(),
-                          products: (newBox.products || []).map(product => ({
-                            ...product,
-                            id: Date.now().toString() + Math.random().toString(36).slice(2, 11)
-                          }))
-                        };
-                        setBoxes(prev => [...prev, copiedBox]);
-                        closeBoxModal();
-                      } else {
-                        // Add product for new boxes
-                        addProductToBox();
-                      }
-                    }}
+                    onClick={addProductToBox}
                   >
-                    {modalMode === 'edit' ? 'Copy Box' : 'Add Product'}
+                    Add Product
                   </button>
                 </div>
               </div>
