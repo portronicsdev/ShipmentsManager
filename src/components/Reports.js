@@ -1186,7 +1186,7 @@ const Reports = ({ shipments = [] }) => {
       {/* Customer Details Modal */}
       {showCustomerDetails && selectedCustomer && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '700px', maxHeight: '90vh' }}>
+          <div className="modal" style={{ maxWidth: '950px', maxHeight: '90vh' }}>
             <div className="modal-header">
               <h3 className="modal-title">📋 Shipment Details - {selectedCustomer.name}</h3>
               <button className="btn-close" onClick={closeCustomerDetails}>&times;</button>
@@ -1194,8 +1194,8 @@ const Reports = ({ shipments = [] }) => {
 
             <div className="modal-body">
               {/* Customer Summary */}
-              <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>Customer Summary</h4>
+              <div style={{ marginBottom: '5px', padding: '5px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+            
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
                   <div>
                     <strong>Total Shipments:</strong> {selectedCustomer.shipments.length}
@@ -1212,7 +1212,7 @@ const Reports = ({ shipments = [] }) => {
               </div>
 
               {/* Shipment Details Table */}
-              <h4 style={{ color: '#2c3e50', marginBottom: '15px' }}>Shipment Details</h4>
+            
               <div className="table-responsive">
                 <table className="table" style={{ fontSize: '13px' }}>
                   <thead>
@@ -1262,8 +1262,8 @@ const Reports = ({ shipments = [] }) => {
               </div>
 
               {/* Shipment Details with Boxes */}
-              <div style={{ marginTop: '20px' }}>
-                <h4 style={{ color: '#2c3e50', marginBottom: '15px' }}>Shipment Details</h4>
+              <div style={{ marginTop: '5px' }}>
+             
                 {selectedCustomer.shipments
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
                   .map((shipment, shipmentIndex) => {
@@ -1276,7 +1276,7 @@ const Reports = ({ shipments = [] }) => {
                     
                     return (
                       <div key={shipment.id} style={{ 
-                        marginBottom: '30px', 
+                        marginBottom: '5px', 
                         border: '2px solid #dee2e6', 
                         borderRadius: '8px', 
                         padding: '20px',
