@@ -75,12 +75,27 @@ const Reports = ({ shipments = [] }) => {
           count: 0,
           totalBoxes: 0,
           totalWeight: 0,
-          totalDuration: 0
+          totalDuration: 0,
+          totalRequiredQty: 0,
+          totalPackedQty: 0,
+          users: new Set()
         };
       }
       customerStats[customerName].count++;
       customerStats[customerName].totalBoxes += shipment.boxes?.length || 0;
       customerStats[customerName].totalWeight += shipment.boxes?.reduce((sum, box) => sum + parseFloat(box.finalWeight || 0), 0) || 0;
+      customerStats[customerName].totalRequiredQty += shipment.requiredQty || 0;
+      
+      // Calculate packed quantity (sum of all product quantities in all boxes)
+      const packedQty = shipment.boxes?.reduce((sum, box) => 
+        sum + (box.products?.reduce((prodSum, prod) => prodSum + (prod.quantity || 0), 0) || 0), 0
+      ) || 0;
+      customerStats[customerName].totalPackedQty += packedQty;
+      
+      // Add user to set
+      if (shipment.createdBy?.name) {
+        customerStats[customerName].users.add(shipment.createdBy.name);
+      }
       
       const duration = calculateDuration(shipment.startTime, shipment.endTime);
       if (duration !== 'N/A' && duration !== 'Invalid') {
@@ -167,8 +182,11 @@ const Reports = ({ shipments = [] }) => {
       'Customer': customer,
       'Shipments': stats.count,
       'Total Boxes': stats.totalBoxes,
+      'Invoice Qty': stats.totalRequiredQty,
+      'Packed Qty': stats.totalPackedQty,
       'Total Weight (kg)': stats.totalWeight.toFixed(2),
-      'Charged Weight (kg)': stats.totalWeight.toFixed(2)
+      'Charged Weight (kg)': stats.totalWeight.toFixed(2),
+      'Users': Array.from(stats.users).join(', ')
     }));
 
     const filename = `Summary_Report_${format(new Date(), 'yyyy-MM-dd')}`;
@@ -184,16 +202,24 @@ const Reports = ({ shipments = [] }) => {
           charged: sum.charged + parseFloat(box.finalWeight || 0)
         }), { total: 0, charged: 0 }) || { total: 0, charged: 0 };
         
+        // Calculate packed quantity (sum of all product quantities in all boxes)
+        const packedQty = shipment.boxes?.reduce((sum, box) => 
+          sum + (box.products?.reduce((prodSum, prod) => prodSum + (prod.quantity || 0), 0) || 0), 0
+        ) || 0;
+        
         return {
           'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
           'Invoice No': shipment.invoiceNo,
           'Customer': shipment.partyName,
+          'Invoice Qty': shipment.requiredQty || 0,
+          'Packed Qty': packedQty,
           'Start Time': shipment.startTime || '-',
           'End Time': shipment.endTime || '-',
           'Duration': calculateDuration(shipment.startTime, shipment.endTime),
           'Boxes': shipment.boxes?.length || 0,
           'Total Weight (kg)': weights.total.toFixed(2),
-          'Charged Weight (kg)': weights.charged.toFixed(2)
+          'Charged Weight (kg)': weights.charged.toFixed(2),
+          'User': shipment.createdBy?.name || '-'
         };
       });
 
@@ -317,6 +343,8 @@ const Reports = ({ shipments = [] }) => {
           'Invoice No': shipment.invoiceNo,
           'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
           'Customer': shipment.partyName,
+          'Invoice Qty': shipment.requiredQty || 0,
+          'Packed Qty': totalProducts,
           'Start Time': shipment.startTime || 'N/A',
           'End Time': shipment.endTime || 'N/A',
           'Duration': calculateDuration(shipment.startTime, shipment.endTime),
@@ -324,6 +352,7 @@ const Reports = ({ shipments = [] }) => {
           'Total Products': totalProducts,
           'Total Weight (kg)': totalWeight.toFixed(2),
           'Charged Weight (kg)': totalWeight.toFixed(2),
+          'User': shipment.createdBy?.name || '-',
           'Box #': '',
           'Box Type': '',
           'Box Weight (kg)': '',
@@ -344,6 +373,8 @@ const Reports = ({ shipments = [] }) => {
                 'Invoice No': '',
                 'Date': '',
                 'Customer': '',
+                'Invoice Qty': '',
+                'Packed Qty': '',
                 'Start Time': '',
                 'End Time': '',
                 'Duration': '',
@@ -351,6 +382,7 @@ const Reports = ({ shipments = [] }) => {
                 'Total Products': '',
                 'Total Weight (kg)': '',
                 'Charged Weight (kg)': '',
+                'User': '',
                 'Box #': box.boxNo + (box.isShortBox ? ' (Short)' : ''),
                 'Box Type': box.isShortBox ? 'Short Box' : 'Regular Box',
                 'Box Weight (kg)': box.finalWeight || 0,
@@ -369,6 +401,8 @@ const Reports = ({ shipments = [] }) => {
               'Invoice No': '',
               'Date': '',
               'Customer': '',
+              'Invoice Qty': '',
+              'Packed Qty': '',
               'Start Time': '',
               'End Time': '',
               'Duration': '',
@@ -376,6 +410,7 @@ const Reports = ({ shipments = [] }) => {
               'Total Products': '',
               'Total Weight (kg)': '',
               'Charged Weight (kg)': '',
+              'User': '',
               'Box #': box.boxNo + (box.isShortBox ? ' (Short)' : ''),
               'Box Type': box.isShortBox ? 'Short Box' : 'Regular Box',
               'Box Weight (kg)': box.finalWeight || 0,
@@ -469,8 +504,11 @@ const Reports = ({ shipments = [] }) => {
       'Customer': customer,
       'Shipments': stats.count,
       'Total Boxes': stats.totalBoxes,
+      'Invoice Qty': stats.totalRequiredQty,
+      'Packed Qty': stats.totalPackedQty,
       'Total Weight (kg)': stats.totalWeight.toFixed(2),
-      'Charged Weight (kg)': stats.totalWeight.toFixed(2)
+      'Charged Weight (kg)': stats.totalWeight.toFixed(2),
+      'Users': Array.from(stats.users).join(', ')
     }));
 
     const filename = `Summary_Report_${format(new Date(), 'yyyy-MM-dd')}`;
@@ -487,6 +525,11 @@ const Reports = ({ shipments = [] }) => {
           sum + parseFloat(box.finalWeight || 0), 0
         ) || 0;
 
+        // Calculate packed quantity (sum of all product quantities in all boxes)
+        const packedQty = shipment.boxes?.reduce((sum, box) => 
+          sum + (box.products?.reduce((prodSum, prod) => prodSum + (prod.quantity || 0), 0) || 0), 0
+        ) || 0;
+
         // Add shipment header row
         data.push({
           'Type': 'SHIPMENT',
@@ -494,9 +537,12 @@ const Reports = ({ shipments = [] }) => {
           'Invoice': shipment.invoiceNo,
           'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
           'Customer': shipment.partyName,
+          'Invoice Qty': shipment.requiredQty || 0,
+          'Packed Qty': packedQty,
           'Time': `${shipment.startTime || 'N/A'} - ${shipment.endTime || 'N/A'}`,
           'Total Boxes': shipment.boxes?.length || 0,
           'Total Weight (kg)': totalWeight.toFixed(2),
+          'User': shipment.createdBy?.name || '-',
           'Details': ''
         });
 
@@ -511,9 +557,12 @@ const Reports = ({ shipments = [] }) => {
             'Invoice': '',
             'Date': '',
             'Customer': '',
+            'Invoice Qty': '',
+            'Packed Qty': '',
             'Time': '',
             'Total Boxes': '',
             'Total Weight (kg)': '',
+            'User': '',
             'Details': `Box #${box.boxNo}${box.isShortBox ? ' (Short)' : ''} - ${boxProductCount} products - ${box.finalWeight || 0}kg`
           });
         });
@@ -526,9 +575,12 @@ const Reports = ({ shipments = [] }) => {
             'Invoice': '',
             'Date': '',
             'Customer': '',
+            'Invoice Qty': '',
+            'Packed Qty': '',
             'Time': '',
             'Total Boxes': '',
             'Total Weight (kg)': '',
+            'User': '',
             'Details': '────────────────────────────────────────'
           });
         }
@@ -630,10 +682,13 @@ const Reports = ({ shipments = [] }) => {
           'Shipment #': shipmentIndex + 1,
           'Invoice': shipment.invoiceNo,
           'Date': format(new Date(shipment.date), 'MMM dd, yyyy'),
+          'Invoice Qty': shipment.requiredQty || 0,
+          'Packed Qty': totalProducts,
           'Time': `${shipment.startTime || 'N/A'} - ${shipment.endTime || 'N/A'}`,
           'Boxes': shipment.boxes?.length || 0,
           'Products': totalProducts,
-          'Weight (kg)': totalWeight.toFixed(2)
+          'Weight (kg)': totalWeight.toFixed(2),
+          'User': shipment.createdBy?.name || '-'
         };
       });
 
@@ -648,12 +703,11 @@ const Reports = ({ shipments = [] }) => {
         {/* Report Selection */}
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-           
-            <button
+             <button
               className={`btn ${selectedReport === 'detailed' ? 'btn-primary' : 'btn-outline-primary'}`}
               onClick={() => setSelectedReport('detailed')}
             >
-              Summary
+              Summary Report
             </button>
              <button
               className={`btn ${selectedReport === 'summary' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -791,8 +845,11 @@ const Reports = ({ shipments = [] }) => {
                     <th>Customer</th>
                     <th>Shipments</th>
                     <th>Total Boxes</th>
+                    <th>Invoice Qty</th>
+                    <th>Packed Qty</th>
                     <th>Total Weight (kg)</th>
                     <th>Charged Weight (kg)</th>
+                    <th>Users</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -820,8 +877,11 @@ const Reports = ({ shipments = [] }) => {
                       </td>
                       <td>{stats.count}</td>
                       <td>{stats.totalBoxes}</td>
+                      <td>{stats.totalRequiredQty}</td>
+                      <td>{stats.totalPackedQty}</td>
                       <td>{stats.totalWeight.toFixed(2)}</td>
                       <td>{stats.totalWeight.toFixed(2)}</td>
+                      <td>{Array.from(stats.users).join(', ')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -841,12 +901,15 @@ const Reports = ({ shipments = [] }) => {
                     <th>Date</th>
                     <th>Invoice No</th>
                     <th>Customer</th>
+                    <th>Invoice Qty</th>
+                    <th>Packed Qty</th>
                     <th>Start Time</th>
                     <th>End Time</th>
                     <th>Duration</th>
                     <th>Boxes</th>
                     <th>Total Weight</th>
                     <th>Charged Weight</th>
+                    <th>User</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -858,17 +921,25 @@ const Reports = ({ shipments = [] }) => {
                         charged: sum.charged + parseFloat(box.finalWeight || 0)
                       }), { total: 0, charged: 0 }) || { total: 0, charged: 0 };
                       
+                      // Calculate packed quantity (sum of all product quantities in all boxes)
+                      const packedQty = shipment.boxes?.reduce((sum, box) => 
+                        sum + (box.products?.reduce((prodSum, prod) => prodSum + (prod.quantity || 0), 0) || 0), 0
+                      ) || 0;
+                      
                       return (
                         <tr key={shipment.id}>
                           <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
                           <td style={{ fontWeight: '600' }}>{shipment.invoiceNo}</td>
                           <td>{shipment.partyName}</td>
+                          <td>{shipment.requiredQty || 0}</td>
+                          <td>{packedQty}</td>
                           <td>{shipment.startTime || '-'}</td>
                           <td>{shipment.endTime || '-'}</td>
                           <td>{calculateDuration(shipment.startTime, shipment.endTime)}</td>
                           <td>{shipment.boxes?.length || 0}</td>
                           <td>{weights.total.toFixed(2)} kg</td>
                           <td>{weights.charged.toFixed(2)} kg</td>
+                          <td>{shipment.createdBy?.name || '-'}</td>
                         </tr>
                       );
                     })}
@@ -998,13 +1069,21 @@ const Reports = ({ shipments = [] }) => {
                       {/* Shipment Summary */}
                       <div style={{ 
                         display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-                        gap: '15px',
+                        gridTemplateColumns: 'repeat(9, 1fr)', 
+                        gap: '10px',
                         marginBottom: '20px',
                         padding: '15px',
                         backgroundColor: '#f8f9fa',
                         borderRadius: '6px'
                       }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Invoice Qty</div>
+                          <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.requiredQty || 0}</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Packed Qty</div>
+                          <div style={{ fontWeight: '600', color: '#495057' }}>{totalProducts}</div>
+                        </div>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Start Time</div>
                           <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.startTime || 'N/A'}</div>
@@ -1028,6 +1107,10 @@ const Reports = ({ shipments = [] }) => {
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Charged Weight</div>
                           <div style={{ fontWeight: '600', color: '#495057' }}>{totalWeight.toFixed(2)} kg</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>User</div>
+                          <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.createdBy?.name || '-'}</div>
                         </div>
                       </div>
 
@@ -1136,12 +1219,15 @@ const Reports = ({ shipments = [] }) => {
                     <tr>
                       <th>Date</th>
                       <th>Invoice No</th>
+                      <th>Invoice Qty</th>
+                      <th>Packed Qty</th>
                       <th>Start Time</th>
                       <th>End Time</th>
                       <th>Duration</th>
                       <th>Boxes</th>
                       <th>Products</th>
                       <th>Weight</th>
+                      <th>User</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1159,12 +1245,15 @@ const Reports = ({ shipments = [] }) => {
                           <tr key={shipment.id}>
                             <td>{format(new Date(shipment.date), 'MMM dd, yyyy')}</td>
                             <td style={{ fontWeight: '600' }}>{shipment.invoiceNo}</td>
+                            <td>{shipment.requiredQty || 0}</td>
+                            <td>{totalProducts}</td>
                             <td>{shipment.startTime || '-'}</td>
                             <td>{shipment.endTime || '-'}</td>
                             <td>{calculateDuration(shipment.startTime, shipment.endTime)}</td>
                             <td>{shipment.boxes?.length || 0}</td>
                             <td>{totalProducts}</td>
                             <td>{totalWeight.toFixed(2)} kg</td>
+                            <td>{shipment.createdBy?.name || '-'}</td>
                           </tr>
                         );
                       })}
@@ -1223,13 +1312,21 @@ const Reports = ({ shipments = [] }) => {
                         {/* Shipment Summary */}
                         <div style={{ 
                           display: 'grid', 
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-                          gap: '15px',
+                          gridTemplateColumns: 'repeat(9, 1fr)', 
+                          gap: '10px',
                           marginBottom: '20px',
                           padding: '15px',
                           backgroundColor: '#f8f9fa',
                           borderRadius: '6px'
                         }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Invoice Qty</div>
+                            <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.requiredQty || 0}</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Packed Qty</div>
+                            <div style={{ fontWeight: '600', color: '#495057' }}>{totalProducts}</div>
+                          </div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Start Time</div>
                             <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.startTime || 'N/A'}</div>
@@ -1253,6 +1350,10 @@ const Reports = ({ shipments = [] }) => {
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Charged Weight</div>
                             <div style={{ fontWeight: '600', color: '#495057' }}>{totalWeight.toFixed(2)} kg</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>User</div>
+                            <div style={{ fontWeight: '600', color: '#495057' }}>{shipment.createdBy?.name || '-'}</div>
                           </div>
                         </div>
 
