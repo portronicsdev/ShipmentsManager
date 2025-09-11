@@ -22,7 +22,7 @@ export function LabelCanvas({ shipment, box, maxRows = MAX_PRODUCT_ROWS }) {
   const dimensionStr = `${n(box?.length)}*${n(box?.width)}*${n(box?.height)}`; // L*W*H
   const boxCode = `${shipment?.invoiceNo || ''}_${box?.boxNo || ''}`;
 
-  const { visibleProducts, extraCount } = useMemo(() => {
+  const { visibleProducts } = useMemo(() => {
     const arr = products.slice(0, maxRows);
     const extra = Math.max(products.length - arr.length, 0);
     return { visibleProducts: arr, extraCount: extra };

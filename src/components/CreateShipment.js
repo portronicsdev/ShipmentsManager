@@ -682,7 +682,7 @@ const CreateShipment = ({ products = [], onAdd }) => {
     0
   );
 
-  const sumFinalWeight = boxes.reduce((sum, box) => sum + (box.finalWeight || 0), 0).toFixed(2);
+  
   const sumVolWeight = boxes.reduce((sum, box) => sum + (box.volumeWeight || 0), 0).toFixed(2);
   const sumVolume = boxes.reduce((sum, box) => sum + (box.volume || 0), 0).toFixed(2);
   
