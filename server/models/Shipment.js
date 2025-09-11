@@ -92,12 +92,6 @@ const shipmentSchema = new mongoose.Schema({
     ref: 'Customer',
     required: [true, 'Customer is required']
   },
-  partyName: {
-    type: String,
-    required: [true, 'Party name is required'],
-    trim: true,
-    maxlength: [100, 'Party name cannot be more than 100 characters']
-  },
   requiredQty: {
     type: Number,
     required: [true, 'Required quantity is mandatory'],

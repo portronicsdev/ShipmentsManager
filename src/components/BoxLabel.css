@@ -1,0 +1,122 @@
+/* Make print look exactly like the screen preview */
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Fix the paper to 4in x 6in, portrait, no margins */
+@page {
+  size: 6in 4in;
+  margin: 0;
+}
+
+/* Hide only what we mark; keep the label visible */
+@media print {
+  body { margin: 0; }
+  .print-hide { display: none !important; }
+}
+
+/* The label canvas — exact physical size */
+.label-root {
+  width: 6in;
+  height: 4in;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  padding: 0.15in; /* small inner padding */
+  border: 1px solid #000; /* helpful border for alignment; thermal can ignore it */
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Title */
+.label-title {
+  font-size: 9pt;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.1in;
+}
+
+/* Key/Value table (two columns) */
+.kv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  margin-bottom: 0.01in;
+}
+.kv-table td {
+  border: 1px solid #000;
+  padding: 0.04in 0.06in;
+  vertical-align: middle;
+}
+.kv-k {
+  width: 55%;
+  font-weight: 700;
+}
+.kv-v {
+  width: 45%;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Divider bar */
+.divider {
+  height: 2px;
+  background: #000;
+  margin: 0.06in 0 0.06in 0;
+}
+
+/* Products header */
+.products-header {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-bottom: 0.02in;
+}
+.products-header th,
+.products-header td {
+  border: 1px solid #000;
+  padding: 0.04in 0.06in;
+}
+.products-header th {
+  background: #f0f0f0;
+  font-weight: 700;
+}
+
+/* Bounded products area so rows never overflow the page */
+.products-area {
+  /* With the title + KV table + header + footer, ~3.3in is a safe bound */
+  height: 2.1in;
+  overflow: hidden; /* clip anything extra just in case */
+}
+
+/* Products body */
+.products-body {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+.products-body td {
+  border: 1px solid #000;
+  padding: 0.04in 0.06in;
+}
+.products-body td.qty {
+  text-align: right;
+}
+.products-body td.sno {
+  text-align: center;
+  width: 14%;
+}
+.products-body td.name {
+  width: 66%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Footer small note (optional) */
+.footer-note {
+  margin-top: 0.06in;
+  font-size: 7.5pt;
+  text-align: center;
+}
+
+/* Bulk print: make each label its own page and avoid splitting */
+.page-break { break-after: page; page-break-after: always; }
+.bulk-label .label-root { page-break-inside: avoid; }

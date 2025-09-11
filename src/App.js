@@ -122,6 +122,12 @@ function AppContent() {
     setTimeout(() => setShowOperationSuccess(''), 3000);
   };
 
+  // Helper: show operation error messages
+  const showError = (message) => {
+    setShowOperationSuccess(`❌ ${message}`);
+    setTimeout(() => setShowOperationSuccess(''), 5000);
+  };
+
   const handleAuthSuccess = (userData) => {
     setUser(userData);
     setShowSuccessMessage(true);
@@ -143,11 +149,16 @@ function AppContent() {
       if (response.success) {
         setShipments(prev => [...prev, response.data.shipment]);
         showSuccess('Shipment created successfully!');
+        return { success: true };
       } else {
-        throw new Error(response.message);
+        showError(response.message || 'Failed to create shipment');
+        return { success: false, error: response.message };
       }
     } catch (error) {
-      throw error;
+      console.error('Error creating shipment:', error);
+      const errorMessage = error.message || 'Failed to create shipment. Please try again.';
+      showError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 

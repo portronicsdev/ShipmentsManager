@@ -15,7 +15,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
     date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
     invoiceNo: shipment.invoiceNo || '',
     customer: (typeof shipment.customer === 'object' && shipment.customer._id) ? shipment.customer._id : shipment.customer || '',
-    partyName: shipment.partyName || '',
+    partyName: shipment.customer || '',
     requiredQty: shipment.requiredQty || '',
     startTime: shipment.startTime || '',
     endTime: shipment.endTime || ''
@@ -98,7 +98,7 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
       date: shipment.date ? new Date(shipment.date).toISOString().split('T')[0] : '',
       invoiceNo: shipment.invoiceNo || '',
       customer: (typeof shipment.customer === 'object' && shipment.customer._id) ? shipment.customer._id : shipment.customer || '',
-      partyName: shipment.partyName || '',
+      partyName: shipment.customer || '',
       requiredQty: shipment.requiredQty || shipment.quantityToBePacked || '',
       startTime: shipment.startTime || '',
       endTime: shipment.endTime || ''
@@ -176,18 +176,18 @@ const EditShipmentForm = ({ shipment, products, onSave, onCancel }) => {
   const calculateShipmentWeights = (boxesArray) => {
     let totalWeight = 0;
     let totalVolumeWeight = 0;
+    let totalChargedWeight = 0;
     
     boxesArray.forEach(box => {
-      totalWeight += parseFloat(box.finalWeight || 0);
+      totalWeight += parseFloat(box.weight || 0); // Actual physical weight
       totalVolumeWeight += parseFloat(box.volumeWeight || 0);
+      totalChargedWeight += parseFloat(box.finalWeight || 0); // Charged weight (max weight)
     });
-    
-    const chargedWeight = Math.max(totalWeight, totalVolumeWeight);
     
     return {
       totalWeight: totalWeight.toFixed(2),
       totalVolumeWeight: totalVolumeWeight.toFixed(2),
-      chargedWeight: chargedWeight.toFixed(2)
+      chargedWeight: totalChargedWeight.toFixed(2)
     };
   };
 
@@ -1250,18 +1250,16 @@ const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) 
     }
     
     let totalWeight = 0;
-    let totalVolumeWeight = 0;
+    let totalChargedWeight = 0;
     
     boxes.forEach(box => {
-      totalWeight += parseFloat(box.finalWeight || 0);
-      totalVolumeWeight += parseFloat(box.volumeWeight || 0);
+      totalWeight += parseFloat(box.weight || 0); // Actual physical weight
+      totalChargedWeight += parseFloat(box.finalWeight || 0); // Charged weight (max weight)
     });
-    
-    const chargedWeight = Math.max(totalWeight, totalVolumeWeight);
     
     return {
       totalWeight: totalWeight.toFixed(2),
-      chargedWeight: chargedWeight.toFixed(2)
+      chargedWeight: totalChargedWeight.toFixed(2)
     };
   };
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1282,7 +1280,7 @@ const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) 
 
   const filteredShipments = shipments.filter(shipment => {
     const q = searchTerm.toLowerCase();
-    return shipment.invoiceNo.toLowerCase().includes(q) || shipment.partyName.toLowerCase().includes(q);
+    return shipment.invoiceNo.toLowerCase().includes(q) || shipment.customer.toLowerCase().includes(q);
   });
 
   const handleEdit = (shipment) => {
@@ -1366,7 +1364,7 @@ const Shipments = ({ shipments, totalShipments, products, onUpdate, onDelete }) 
                     </span>
                   )}
                 </td>
-                <td>{shipment.partyName}</td>
+                <td>{shipment.customer?.name || 'Unknown Customer'}</td>
                 <td>{shipment.boxes.length}</td>
                 <td>{weights.totalWeight} kg</td>
                 <td>{weights.chargedWeight} kg</td>

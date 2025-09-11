@@ -49,7 +49,7 @@ const ShipmentLabel = React.forwardRef(({ shipment }, ref) => {
           padding: '8px 0'
         }}>
           <span>Party Name:</span>
-          <span style={{ fontWeight: 'bold' }}>{shipment.partyName}</span>
+          <span style={{ fontWeight: 'bold' }}>{shipment.customer?.name || 'Unknown Customer'}</span>
         </div>
         
         <div style={{ 

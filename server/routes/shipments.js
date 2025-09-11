@@ -136,10 +136,6 @@ router.post('/', [
   body('customer')
     .notEmpty()
     .withMessage('Customer is required'),
-  body('partyName')
-    .trim()
-    .notEmpty()
-    .withMessage('Party name is required'),
   body('requiredQty')
     .isInt({ min: 1 })
     .withMessage('Required quantity must be a positive integer'),
@@ -196,12 +192,11 @@ router.post('/', [
       });
     }
 
-    const { invoiceNo, partyName, requiredQty, startTime, endTime, boxes, notes } = req.body;
+    const { invoiceNo, requiredQty, startTime, endTime, boxes, notes } = req.body;
     
     // Debug: Log incoming data
     console.log('Incoming shipment data:', {
       invoiceNo,
-      partyName,
       startTime,
       endTime,
       boxesCount: boxes?.length,
@@ -300,7 +295,6 @@ router.post('/', [
     const shipment = await Shipment.create({
       invoiceNo: invoiceNo.toUpperCase(),
       customer: req.body.customer,
-      partyName,
       requiredQty: parseInt(requiredQty),
       startTime,
       endTime,
@@ -341,11 +335,6 @@ router.put('/:id', [
     .optional()
     .notEmpty()
     .withMessage('Customer cannot be empty'),
-  body('partyName')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Party name cannot be empty'),
   body('startTime')
     .optional()
     .notEmpty()

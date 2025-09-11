@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useReactToPrint } from 'react-to-print';
@@ -13,25 +13,39 @@ const ShipmentDetail = ({ shipments, products }) => {
   
   // Refs for printing
   const shipmentLabelRef = useRef();
-  const boxLabelRefs = useRef({});
   
   // Print handlers
   const handlePrintShipment = useReactToPrint({
     content: () => shipmentLabelRef.current,
   });
   
-  const [currentPrintBoxId, setCurrentPrintBoxId] = useState(null);
+  // Box label modal state (same as CreateShipment)
+  const [showBoxLabel, setShowBoxLabel] = useState(false);
+  const [selectedBox, setSelectedBox] = useState(null);
   
-  const handlePrintBox = useReactToPrint({
-    content: () => boxLabelRefs.current[currentPrintBoxId],
-  });
-  
-  const printBox = (boxId) => {
-    setCurrentPrintBoxId(boxId);
-    setTimeout(() => {
-      handlePrintBox();
-    }, 100);
+  const printBox = (box) => {
+    setSelectedBox(box);
+    setShowBoxLabel(true);
   };
+  
+  const closeBoxLabel = () => {
+    setShowBoxLabel(false);
+    setSelectedBox(null);
+  };
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === 'Escape') {
+        if (showBoxLabel) {
+          closeBoxLabel();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [showBoxLabel]);
   
   if (!shipment) {
     return (
@@ -79,7 +93,7 @@ const ShipmentDetail = ({ shipments, products }) => {
             Shipment Details
           </h1>
           <p style={{ color: '#7f8c8d', margin: '0', fontSize: '14px' }}>
-            Invoice: {shipment.invoiceNo} | Party: {shipment.partyName}
+            Invoice: {shipment.invoiceNo} | Party: {shipment.customer?.name || 'Unknown Customer'} | Date: {format(new Date(shipment.date), 'MMM dd, yyyy')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -141,7 +155,7 @@ const ShipmentDetail = ({ shipments, products }) => {
           <div>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#34495e', fontSize: '12px' }}>Party</label>
             <div style={{ padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6', fontSize: '13px' }}>
-              {shipment.partyName}
+              {shipment.customer?.name || 'Unknown Customer'}
             </div>
           </div>
           
@@ -283,7 +297,7 @@ const ShipmentDetail = ({ shipments, products }) => {
             </thead>
             <tbody>
               {shipment.boxes.map(box => (
-                <tr key={box.id} style={{ 
+                <tr key={box.boxNo} style={{ 
                   borderBottom: '1px solid #e9ecef',
                   backgroundColor: box.isShortBox ? '#ffe6e6' : 'transparent'
                 }}>
@@ -356,7 +370,7 @@ const ShipmentDetail = ({ shipments, products }) => {
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     <button 
-                      onClick={() => printBox(box.id)}
+                      onClick={() => printBox(box)}
                       style={{
                         padding: '8px 16px',
                         backgroundColor: '#dc3545',
@@ -382,17 +396,23 @@ const ShipmentDetail = ({ shipments, products }) => {
       <div style={{ display: 'none' }}>
         {/* Shipment Label for Printing */}
         <ShipmentLabel ref={shipmentLabelRef} shipment={shipment} />
-        
-        {/* Box Labels for Printing */}
-        {shipment.boxes.map(box => (
-          <BoxLabel 
-            key={box.id} 
-            ref={el => boxLabelRefs.current[box.id] = el}
-            box={box} 
-            shipment={shipment} 
-          />
-        ))}
       </div>
+      
+      {/* Box Label Modal (same as CreateShipment) */}
+      {showBoxLabel && selectedBox && (
+        <BoxLabel
+          shipment={{
+            invoiceNo: shipment.invoiceNo,
+            date: shipment.date,
+            startTime: shipment.startTime,
+            endTime: shipment.endTime,
+            customer: shipment.customer,
+            createdBy: shipment.createdBy || { name: 'Unknown User' }
+          }}
+          box={selectedBox}
+          onClose={closeBoxLabel}
+        />
+      )}
     </div>
   );
 };
