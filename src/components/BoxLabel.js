@@ -72,13 +72,12 @@ export function LabelCanvas({ shipment, box, maxRows = MAX_PRODUCT_ROWS }) {
         </tbody>
       </table>
 
-
       {/* Products header */}
       <table className="products-header">
         <thead>
           <tr>
-            <th style={{ width: '14%' }}>S.No.</th>
-            <th style={{ width: '66%' }}>Product</th>
+            <th style={{ width: '9%' }}>S.No.</th>
+            <th style={{ width: '71%' }}>Product</th>
             <th style={{ width: '20%', textAlign: 'right' }}>Qty.</th>
           </tr>
         </thead>
@@ -107,14 +106,14 @@ export function LabelCanvas({ shipment, box, maxRows = MAX_PRODUCT_ROWS }) {
 export default function BoxLabel({ shipment, box, onClose }) {
   const printRef = useRef(null);
 
-  // Works for both react-to-print v3 (contentRef) and v2 (content)
+  // Landscape 6x4in
   const pageStyle = `
     @page { size: 6in 4in; margin: 0; }
     body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   `;
   const handlePrint = useReactToPrint({
-    contentRef: printRef,                 // ✅ v3
-    content: () => printRef.current,      // ✅ v2 fallback
+    contentRef: printRef,            // v3
+    content: () => printRef.current, // v2 fallback
     pageStyle,
     removeAfterPrint: false,
     documentTitle: `Box_${shipment?.invoiceNo || ''}_${box?.boxNo || ''}`,
@@ -124,13 +123,12 @@ export default function BoxLabel({ shipment, box, onClose }) {
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 700, maxHeight: '85vh' }}>
         <div className="modal-header print-hide">
-       
           <button className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
-        {/* IMPORTANT: Keep this visible in print */}
+        {/* Keep visible in print */}
         <div className="modal-body">
-          <div ref={printRef}>
+          <div ref={printRef} className="label-sheet">
             <LabelCanvas shipment={shipment} box={box} />
           </div>
         </div>
